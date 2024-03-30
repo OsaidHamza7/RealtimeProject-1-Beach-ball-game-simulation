@@ -32,20 +32,15 @@ int main(int argc, char** argv){
     if(is_team_lead == 1){//team lead
         //split the next player pid to 2 players
 
-        printf("iam the team lead in team #%d\n",player_team_number);
-        fflush(stdout);
-
         char *token = strtok(argv[3], " ");
 
         if (token != NULL) {
             next_player[0] = atoi(token);
             next_player_pid = next_player[0];
-            printf("hi  %d\n", next_player[0]);
-
             token = strtok(NULL, " ");
             if (token != NULL) {
                 next_player[1] = atoi(token);
-                printf("Player #%d team #%d with PID = %d And next player1=%d, next team2 lead=%d\n",
+                printf("Team leader Player #%d in team #%d with PID = %d And next player1=%d, next team lead=%d\n",
                         player_number_in_team, player_team_number, getpid(), next_player[0], next_player[1]);
             } else {
                 printf("Expected another PID but got NULL\n");
@@ -85,7 +80,7 @@ int main(int argc, char** argv){
 
 void signal_handler(int sig){
     number_balls++;
-    printf("The signal %d, reached to player #%d from team #%d with PID = %d \n", sig,player_number_in_team,player_team_number,getpid());
+    printf("Signal %d,team lead player #%d , team #%d, PID = %d ,next player=%d\n", sig,player_number_in_team,player_team_number,getpid(),next_player_pid);
     sleep(3);
     kill(next_player_pid ,SIGCLD);//next player is first player in the team
     next_player_pid=next_player[1];//next player is the other team lead
@@ -93,16 +88,17 @@ void signal_handler(int sig){
 
 
 void signal_handler1(int sig){
-    printf("The signal %d, reached to player #%d from the previous player\n", sig,player_number_in_team);
+    printf("The signal %d, reached to player #%d ,team #%d ,next player is %d\n", sig,player_number_in_team,player_team_number,next_player_pid);
     sleep(3);
     if (is_team_lead == 1){
         number_balls--;
         kill(next_player_pid,SIGCLD);//the ball gets back to the team lead,so throw it to the other team lead
-       /* if (number_balls == 0){
+       next_player_pid=next_player[0];
+       if (number_balls == 0){
             //send signal to the parent to throw a new ball
             kill(getppid(),SIGUSR1);
-        }*/
-        exit(0);
+        }
+       // exit(0);
     }
     else
         kill(next_player_pid ,SIGCLD);

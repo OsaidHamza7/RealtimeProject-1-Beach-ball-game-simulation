@@ -66,7 +66,7 @@ int main(int argc , char** argv){
     exit(5);
   }
 
-
+  sleep(5);
   //send pid of player1 in team2 and pid of team1 leader to the team2 lead
   sprintf(message1, "%d %d", team2[0],team1[5]);//convert the (pid of first player in team1) to string
 
@@ -80,15 +80,18 @@ int main(int argc , char** argv){
   }
 
 
+
+
+  //Start the game
   //start the round ,the parent will throw two balls to each team lead (by send signal SIGUSR1 to them)
   startRound(round_number);
 
-  /*if(sigset(SIGUSR1, signal_handler) == -1){//throw the ball from parent to team lead, or from team lead to other team lead
+  if(sigset(SIGUSR1, signal_handler) == -1){//throw the ball from parent to team lead, or from team lead to other team lead
     perror("Signal Error\n");
     exit(-1);
   }
 
-  while(1){
+  /*while(1){
     pause();
   }*/
 
@@ -260,12 +263,13 @@ void startRound(int round_number){
     printf("Round #%d started\n", round_number);
     fflush(stdout);
     kill(team1[5],SIGUSR1);
-    sleep(2);
+    sleep(10);
     kill(team2[5],SIGUSR2);
 
 }
 void signal_handler(int sig){
 
-  kill(team1[5],SIGUSR1);
+  //kill(team1[5],SIGUSR1);
+  printf("the signal reached the parent\n");
 }
 
