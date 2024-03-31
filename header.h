@@ -19,6 +19,8 @@
 #include <pthread.h>
 #include<sys/shm.h>
 #include <errno.h>
+#include <stdbool.h>
 
+bool isPassedCorrectArguments(int argc, char** argv, char* message_error);
 
 #endif
