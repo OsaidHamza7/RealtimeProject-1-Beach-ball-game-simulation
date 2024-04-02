@@ -240,7 +240,7 @@ void startRound(int round_number){
     kill(team2[5],SIGUSR2);
 
     // wait for current round to finish ( finishes after 7 seconds)
-    sleep(30);
+    sleep(35);
 
     printf("\n\n> Round #%d is finished.\n\n", round_number);
     fflush(stdout);

@@ -96,7 +96,12 @@ void signal_handler(int sig){//team lead only
     number_balls++;
     next_player_pid=next_player[0];//next player is the first player in it's team
     printf("Signal %d,team lead player #%d , team #%d, PID = %d ,next player=%d\n", sig,player_number_in_team,player_team_number,getpid(),next_player_pid);
-    sleep(3);
+    int a = sleep(2);
+    if (a != 0){
+        printf("Sleep is intrupted player #%d team #%d.\n",player_number_in_team,player_team_number);
+        fflush(stdout);
+        return;
+    }
     //throw the ball(signal) to the first player in the team
     kill(next_player_pid ,SIGCLD);//next player is first player in the team
 }
@@ -117,23 +122,11 @@ void signal_handler1(int sig){
         fflush(stdout);
         return;
     }
-
-    if (is_team_lead == 1){//reached the ball from player number 5 to the team lead,so send it to the other team lead (bu signal SIGTRAP)
-        number_balls--;
-        next_player_pid=next_player[1];//next player is the other team lead
-        kill(next_player_pid,SIGUSR1);//the ball gets back to the team lead,so throw it to the other team lead
-       /*if (number_balls == 0){
-            //send signal to the parent to throw a new ball
-            kill(getppid(),SIGUSR1);
-        }*/
-       // exit(0);
-    }
-    else{
-        //throw the ball to the next player
-        kill(next_player_pid ,SIGCLD);
-        printf("The ball is thrown from player #%d ,team #%d to player #%d\n",player_number_in_team,player_team_number,next_player_pid);
-        fflush(stdout);
-    }
+    //throw the ball to the next player
+    kill(next_player_pid ,SIGCLD);
+    printf("The ball is thrown from player #%d ,team #%d to player #%d\n",player_number_in_team,player_team_number,next_player_pid);
+    fflush(stdout);
+    
 }
 
 
