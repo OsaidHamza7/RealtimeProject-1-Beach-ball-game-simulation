@@ -105,6 +105,12 @@ void signal_handler(int sig){//team lead only
 
 void signal_handler1(int sig){
     printf("The signal %d, reached to player #%d ,team #%d ,next player is %d\n", sig,player_number_in_team,player_team_number,next_player_pid);
+    if (is_team_lead == 1){//reached the ball from player number 5 to the team lead,so send it to the other team lead (bu signal SIGTRAP)
+        number_balls--;
+        next_player_pid=next_player[1];//next player is the other team lead
+        kill(next_player_pid,SIGUSR1);//the ball gets back to the team lead,so throw it to the other team lead
+        return ;
+    }
     int a = sleep(5);
     if (a != 0){
         printf("Sleep is intrupted player #%d team #%d.\n",player_number_in_team,player_team_number);
