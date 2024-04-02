@@ -28,5 +28,5 @@
 
 
 bool isPassedCorrectArguments(int argc, char** argv, char* message_error);
-
+void readArgumentsFile(char* filename);
 #endif

@@ -24,7 +24,6 @@ void createFifos();
   int team1[NUMBER_OF_PLAYERS_In_TEAM], team2[NUMBER_OF_PLAYERS_In_TEAM];
   int current_round_number = 0;
 
-  char* is_team_lead = "0";
   char* player_team_number="1";
 
 
@@ -49,19 +48,20 @@ int main(int argc , char** argv){
   printf("RANGE_ENERGY = %d %d\n", RANGE_ENERGY[0], RANGE_ENERGY[1]);
   printf("*****************************************************\n\n");
 
-  createFifos();
-
   //create the teams
   createTeams();
 
-  //after creating the teams
+  //create a two fifos for the teams
+  createFifos();
+
+  //Send Pids of ( 'first player' and 'other team lead') to each team lead ,after creating the teams
   send_pides_to_team_lead(team1[0],team2[5]); //send pid of player1 in team1 and pid of team2 leader to the team1 lead
   sleep(3);
   send_pides_to_team_lead(team2[0],team1[5]);//send pid of player1 in team2 and pid of team1 leader to the team2 lead
   sleep(3);
   
   //Start the game
-  //start the round ,the parent will throw two balls to each team lead (by send signal SIGUSR1 to them)
+  //start the round ,the parent initially will throw one ball to each team lead (by send signal SIGUSR1 to them)
   startRound(current_round_number);
 
 
@@ -74,19 +74,19 @@ int main(int argc , char** argv){
     pause();
   }*/
 
-  sleep(5);
+  sleep(1);
   // kill all children
+  printf("\nStart kill all players\n");
+
   for (i = 0; i < NUMBER_OF_PLAYERS_In_TEAM; i++)
   {
-      kill(team1[i], SIGKILL);
-      sleep(1);
-      kill(team2[i], SIGKILL);
-      sleep(1);
+      kill(team1[i], SIGQUIT);
+      sleep(0.5);
+      kill(team2[i], SIGQUIT);
+      sleep(0.5);
   }
 
-
-
-
+  printf("\n\n**Good Bay**\n\n");
 
     return 0;
 }       
@@ -105,48 +105,6 @@ void checkArguments(int argc, char** argv, char* file_name){
   }
 }
 
-
-void readArgumentsFile(char* filename){
-    char line[200];
-    char label[50];
-
-    FILE *file;
-    file = fopen(filename, "r");
-
-    if (file == NULL){
-        perror("The file not exist\n");
-        exit(-2);
-    }
-    char separator[] = " ";
-
-    while(fgets(line, sizeof(line), file) != NULL){
-
-        char *str = strtok(line, separator);
-        strncpy(label, str, sizeof(label));
-        str = strtok(NULL, separator);
-
-        if (strcmp(label, "NUMBER_OF_LOST_ROUNDS") == 0){
-             NUMBER_OF_LOST_ROUNDS = atoi(str);
-        }
-
-        else if (strcmp(label, "SIMULATION_THRISHOLD") == 0){
-             SIMULATION_THRISHOLD = atoi(str);
-        }
-        else if (strcmp(label, "ROUND_TIME") == 0){
-             ROUND_TIME = atoi(str);
-        }
-        else if (strcmp(label, "RANGE_ENERGY") == 0){
-             RANGE_ENERGY[0] = atoi(str);
-            str = strtok(NULL, separator);
-             RANGE_ENERGY[1] = atoi(str);
-        }
-         /*else {
-            printf("Invalid variable name: %s\n", label);
-            fflush(stdout);
-        }*/
-    }
-    fclose(file);
-}
 
 
 void createTeams(){
@@ -174,12 +132,8 @@ void createTeams(){
 
       sprintf(player_number_in_team, "%d", num);//convert the (number of player in team) to string
       sprintf(next_player_pid, "%d", next_pid);//convert the (the pid of the next player) to string
-      
-      if(i == 11 || i == 5){
-        is_team_lead = "1";
-      }
 
-     if(i==11 || i==5){
+     if( i == 11 || i == 5 ){//I'm team lead,wait for the parent to send the Pids of ('first player in team', 'other team lead')
         close(f_des[1]);
         if (read(f_des[0], message, BUFSIZ) != -1 ) {
           printf("Message received by child: [%s]\n", message);
@@ -190,21 +144,21 @@ void createTeams(){
           exit(4);
         }
         if(message!=NULL){
-          strcpy(next_player_pid,message);
+          strcpy(next_player_pid,message);//the pids was sent to the team lead
         }
 
       }
 
-      execlp("./player", "player",player_number_in_team,player_team_number,next_player_pid,is_team_lead,NULL);
+      execlp("./player", "player",player_number_in_team,player_team_number,next_player_pid,NULL);
       perror("Error:Execute player Failed.\n");
       exit(1);
       break;
 
     default://I'm parent
-      if(i>5){
+      if( i > 5 ){
         printf("Team1:Player #%d With PID = %d  was created\n",i%6+1,pid);
         team1[i%6] = pid;
-        if (i==6){
+        if ( i == 6 ){
           player_team_number="2";
           next_pid=0;
           printf("\nTeam 1 was created susccessfully\n=================================================================================\n\n");
@@ -217,7 +171,7 @@ void createTeams(){
         next_pid = pid;
         printf("Team2:Player #%d With PID = %d  was created\n",i%6+1,pid);
         team2[i%6] = pid;
-        if(i==0)
+        if( i == 0 )
           printf("\nTeam 2 was created susccessfully\n=================================================================================\n\n");
       }
 
@@ -229,7 +183,6 @@ void createTeams(){
 
 }
 
-
 void startRound(int round_number){
     round_number++;
     printf("\n\n> Round #%d started after 2 seconds.\n\n", round_number);
@@ -240,10 +193,11 @@ void startRound(int round_number){
     kill(team2[5],SIGUSR2);
 
     // wait for current round to finish ( finishes after 7 seconds)
-    sleep(35);
+    sleep(30);
 
     printf("\n\n> Round #%d is finished.\n\n", round_number);
     fflush(stdout);
+    
     //send signal to all players to stop send signals (ball)
     //the team lead will pass the number of balls that the team have to the parent
     for (i = 0; i < NUMBER_OF_PLAYERS_In_TEAM; i++)
@@ -259,12 +213,12 @@ void startRound(int round_number){
     }
     
 
-  int f,f1;
+  int fifo1,fifo2;
   char message[BUFSIZ];
   char message2[BUFSIZ];
 
 
-  if ((f = open(TEAM1FIFO, O_RDONLY)) == -1)
+  if ((fifo1 = open(TEAM1FIFO, O_RDONLY)) == -1)
   {
     perror("error open fifo1");
     printf("\n\n\nparent dead !!!!!! \n\n\n");
@@ -273,7 +227,7 @@ void startRound(int round_number){
   }
 
   else{
-    if(read(f, message, sizeof(message)) == -1){
+    if(read(fifo1, message, sizeof(message)) == -1){
       perror("read error");
       printf("\n\n\nread parent dead : !!!!!! \n\n\n");
       fflush(stdout);
@@ -283,7 +237,7 @@ void startRound(int round_number){
 
 
   }
-    if ((f1 = open(TEAM2FIFO, O_RDONLY)) == -1)
+    if ((fifo2 = open(TEAM2FIFO, O_RDONLY)) == -1)
   {
     perror("error open fifo2");
     printf("\n\n\nparent dead !!!!!! \n\n\n");
@@ -293,7 +247,7 @@ void startRound(int round_number){
 
 
   else{
-    if(read(f1, message2, sizeof(message2)) == -1){
+    if(read(fifo2 , message2, sizeof(message2)) == -1){
       perror("read error");
       printf("\n\n\nread parent dead : !!!!!! \n\n\n");
       fflush(stdout);
@@ -304,8 +258,8 @@ void startRound(int round_number){
     printf("The message is reached to the parent is : %s\n",message);
     printf("The message is reached to the parent is : %s\n",message2);
     fflush(stdout);
-    close(f);
-    close(f1);
+    close(fifo1);
+    close(fifo2);
 
 
   int balls1 = atoi(message);
@@ -313,7 +267,6 @@ void startRound(int round_number){
 
   printf("\n\nRound #%d finished and current balls are\n\tteam 1 - %d\n\tteam 2 - %d\n\n", round_number, balls1, balls2);
 }
-
 
 void signal_handler(int sig){
 
@@ -337,8 +290,6 @@ void send_pides_to_team_lead(int first_player_pid,int other_team_lead_pid){
 
   //kill(team_lead_pid, signal);
 }
-
-
 
 void createFifos()
 {

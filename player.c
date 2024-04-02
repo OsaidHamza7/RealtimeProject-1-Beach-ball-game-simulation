@@ -22,14 +22,14 @@ void send_number_balls_to_parent();
 int main(int argc, char** argv){
 
 
-    if ( argc < 5){
-        perror("The user should pass the arguments like: player_number_in_team,player_team_number,next_player_pid,is_team_lead\n");
+    if ( argc < 4){
+        perror("The user should pass the arguments like: player_number_in_team,player_team_number,next_player_pid\n");
         exit(-1);
     }
 
     player_number_in_team = atoi(argv[1]);
     player_team_number = atoi(argv[2]);
-    is_team_lead = atoi(argv[4]);
+    is_team_lead = (player_number_in_team == 6) ? 1 : 0 ;//team lead or not
 
     if(is_team_lead == 1){//team lead
         //split the next player pid to 2 pids, the first one is the first player in the team, and the second one is the other team lead
@@ -96,7 +96,7 @@ void signal_handler(int sig){//team lead only
     number_balls++;
     next_player_pid=next_player[0];//next player is the first player in it's team
     printf("Signal %d,team lead player #%d , team #%d, PID = %d ,next player=%d\n", sig,player_number_in_team,player_team_number,getpid(),next_player_pid);
-    int a = sleep(2);
+    int a = sleep(3);
     if (a != 0){
         printf("Sleep is intrupted player #%d team #%d.\n",player_number_in_team,player_team_number);
         fflush(stdout);
@@ -124,8 +124,8 @@ void signal_handler1(int sig){
     }
     //throw the ball to the next player
     kill(next_player_pid ,SIGCLD);
-    printf("The ball is thrown from player #%d ,team #%d to player #%d\n",player_number_in_team,player_team_number,next_player_pid);
-    fflush(stdout);
+    //printf("The ball is thrown from player #%d ,team #%d to player #%d\n",player_number_in_team,player_team_number,next_player_pid);
+    //fflush(stdout);
     
 }
 
@@ -163,7 +163,6 @@ void send_number_balls_to_parent(){
         fflush(stdout);
         exit(1);
     }
-    sleep(5);
     close(team_fifo);
     
 }

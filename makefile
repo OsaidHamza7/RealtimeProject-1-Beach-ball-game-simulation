@@ -3,7 +3,7 @@ O = -o
 names = parent player
 
 files:
-	$(G) parent.c $(O) parent
-	$(G) player.c $(O) player
+	$(G) parent.c functions.c $(O) parent
+	$(G) player.c functions.c $(O) player
 clean:
 	rm -f $(names)
