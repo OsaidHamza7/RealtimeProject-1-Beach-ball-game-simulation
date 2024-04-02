@@ -9,11 +9,15 @@ int is_team_lead;
 int number_balls = 0;
 
 int next_player_pid,next_player[2];
-
+char team_fifo_name[20];
+int team_fifo;
+//***********************************************************************************
 void signal_handler(int sig);
 void signal_handler1(int sig);
-//void signal_handler2(int sig);
 void signal_handler3(int sig);
+void send_number_balls_to_parent();
+//***********************************************************************************
+
 
 int main(int argc, char** argv){
 
@@ -52,6 +56,8 @@ int main(int argc, char** argv){
         fflush(stdout);
     }
 
+    strcpy(team_fifo_name, (player_team_number == 1) ? TEAM1FIFO : TEAM2FIFO);
+
     if(sigset(SIGUSR1, signal_handler) == -1){//throw the ball from parent to team lead, or from team lead to other team lead
         perror("Signal Error\n");
         exit(-1);
@@ -73,10 +79,10 @@ int main(int argc, char** argv){
         exit(-1);
     }*/
 
-   /* if(sigset(SIGHUP, signal_handler3) == -1){//catch the signal from parent to stop send signals to players
+   if(sigset(SIGHUP, signal_handler3) == -1){//catch the signal from parent to stop send signals to players
         perror("Signal Error\n");
         exit(-1);
-    }*/
+    }
 
     while(1){
         pause();
@@ -96,9 +102,22 @@ void signal_handler(int sig){//team lead only
 }
 
 
+
 void signal_handler1(int sig){
     printf("The signal %d, reached to player #%d ,team #%d ,next player is %d\n", sig,player_number_in_team,player_team_number,next_player_pid);
-    sleep(20);
+    if (is_team_lead == 1){//reached the ball from player number 5 to the team lead,so send it to the other team lead (bu signal SIGTRAP)
+        number_balls--;
+        next_player_pid=next_player[1];//next player is the other team lead
+        kill(next_player_pid,SIGUSR1);//the ball gets back to the team lead,so throw it to the other team lead
+        return ;
+    }
+    int a = sleep(5);
+    if (a != 0){
+        printf("Sleep is intrupted player #%d team #%d.\n",player_number_in_team,player_team_number);
+        fflush(stdout);
+        return;
+    }
+
     if (is_team_lead == 1){//reached the ball from player number 5 to the team lead,so send it to the other team lead (bu signal SIGTRAP)
         number_balls--;
         next_player_pid=next_player[1];//next player is the other team lead
@@ -121,23 +140,37 @@ void signal_handler1(int sig){
 //function signal handler3 is used to catch the signal from parent to stop send signals to players
 void signal_handler3(int sig){
     printf("The signal %d, reached to player #%d ,team #%d ,stop sending signals\n", sig,player_number_in_team,player_team_number);
+    fflush(stdout);
+    if (is_team_lead == 1)
+    {
+        //call function to send the number of balls to the parent
+        send_number_balls_to_parent();           
+    }
 }
 
+void send_number_balls_to_parent(){
 
+    char message[BUFSIZ];
 
+    // Assuming this is part of the main or a function in player.c
+    /* Open the public FIFO for reading and writing */
+    if ((team_fifo = open(team_fifo_name, O_WRONLY)) == -1)
+    {
+        perror("hi error open fifo");
+        printf("\n\n\nA Player %d Died !!!!!! \n\n\n,", player_team_number);
+        fflush(stdout);
+        exit(1);
+    }
+    sprintf(message,"%d",number_balls);
 
-
-/*void signal_handler2(int sig){
-  close(f_des[0]);
-  char message1[20] ;
-  sprintf(message1, "%d", number_balls);//convert the (pid of first player in team1) to string
-
-  if (write(f_des[1], message1, strlen(message1)) != -1 ) {
-    printf("Message sent by team lead: [%s] to the parent\n", message1);
-    fflush(stdout);
-  }
-  else {
-    perror("Write");
-    exit(5);
-  }
-}*/
+    if (write(team_fifo, message, sizeof(message)) == -1)
+    {
+        perror("write error");
+        printf("\n\n\nAb Player Died !!!!!! \n\n\n");
+        fflush(stdout);
+        exit(1);
+    }
+    sleep(5);
+    close(team_fifo);
+    
+}

@@ -21,6 +21,12 @@
 #include <errno.h>
 #include <stdbool.h>
 
+
+
+#define TEAM1FIFO "/tmp/TEAM1FIFO"
+#define TEAM2FIFO "/tmp/TEAM2FIFO"
+
+
 bool isPassedCorrectArguments(int argc, char** argv, char* message_error);
 
 #endif
