@@ -73,14 +73,17 @@ int main(int argc , char** argv){
   }
 
 
- /* if(sigset(SIGUSR1, signal_handler) == -1){//throw the ball from parent to team lead, or from team lead to other team lead
+ if(sigset(SIGUSR1, signal_handler) == -1){//throw the ball from parent to team lead, or from team lead to other team lead
     perror("Signal Error\n");
     exit(-1);
-  }*/
-
-  /*while(1){
+  }
+  if(sigset(SIGUSR2, signal_handler) == -1){//throw the ball from parent to team lead, or from team lead to other team lead
+    perror("Signal Error\n");
+    exit(-1);
+  }
+  while(1){
     pause();
-  }*/
+  }
 
   sleep(1);
   // kill all children
@@ -88,9 +91,9 @@ int main(int argc , char** argv){
 
   for (i = 0; i < NUMBER_OF_PLAYERS_In_TEAM; i++)
   {
-      kill(team1[i], SIGQUIT);
+      kill(team1[i], SIGKILL);
       sleep(0.5);
-      kill(team2[i], SIGQUIT);
+      kill(team2[i], SIGKILL);
       sleep(0.5);
   }
 
@@ -194,11 +197,11 @@ void startRound(int round_number){
     fflush(stdout);
     sleep(2);
     kill(team1[5],SIGUSR1);//throw the ball to the team lead
-    sleep(20);
+    sleep(25);
     kill(team2[5],SIGUSR2);
 
     // wait for current round to finish ( finishes after 7 seconds)
-    sleep(20);
+    sleep(35);
 
     printf("\n\n> Round #%d is finished.\n\n", round_number);
     fflush(stdout);
@@ -234,10 +237,15 @@ void startRound(int round_number){
 
 }
 
-void signal_handler(int sig){
-
-  //kill(team1[5],SIGUSR1);
-  printf("the signal reached the parent\n");
+void signal_handler(int sig){ 
+  if (sig == SIGUSR1){
+    printf("The signal %d reached the parent,send ball to team #1 lead .\n\n",sig);
+    kill(team1[5],sig);
+  }
+  else if (sig == SIGUSR2){
+    printf("The signal %d reached the parent,send ball to team #2 lead .\n\n",sig);
+    kill(team2[5],sig);
+  }
 }
 
 void send_pides_to_team_lead(int first_player_pid,int other_team_lead_pid){

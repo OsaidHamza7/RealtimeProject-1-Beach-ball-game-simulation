@@ -114,6 +114,9 @@ void signal_handler1(int sig){
         number_balls--;
         next_player_pid=next_player[1];//next player is the other team lead
         kill(next_player_pid,SIGUSR1);//the ball gets back to the team lead,so throw it to the other team lead
+        if (number_balls == 0){//if the team has no balls, then send signal to the parent to throw a new ball
+            kill(getppid(),SIGUSR1);//send signal SIGUSR1 to the parent to throw a new ball
+        }
         return ;
     }
     int a = sleep(5);
