@@ -1,15 +1,14 @@
 
 #include "header.h"
 
-
 int player_number_in_team;
 int player_team_number;
 int is_team_lead;
 int number_balls = 0;
 
-int next_player_pid,next_player[2];
+int  next_player_pid,next_player[2];
 char team_fifo_name[20];
-int team_fifo;
+int  team_fifo;
 char message[BUFSIZ] ;
 
 //***********************************************************************************
@@ -30,7 +29,7 @@ int main(int argc, char** argv){
     player_number_in_team = atoi(argv[1]);
     player_team_number = atoi(argv[2]);
     is_team_lead = (player_number_in_team == 6) ? 1 : 0 ;//team lead or not
-
+    
     if(is_team_lead == 1){//team lead
         //split the next player pid to 2 pids, the first one is the first player in the team, and the second one is the other team lead
         char *token = strtok(argv[3], " ");
@@ -58,17 +57,17 @@ int main(int argc, char** argv){
 
     strcpy(team_fifo_name, (player_team_number == 1) ? TEAM1FIFO : TEAM2FIFO);
 
-    if(sigset(SIGUSR1, signal_handler) == -1){//throw the ball from parent to team lead, or from team lead to other team lead
+    if(signal(SIGUSR1, signal_handler) == SIG_ERR){//throw the ball from parent to team lead, or from team lead to other team lead
         perror("Signal Error\n");
         exit(-1);
     }
     
-    if(sigset(SIGUSR2, signal_handler) == -1){//throw the ball from parent to team lead, or from team lead to other team lead
+    if(signal(SIGUSR2, signal_handler) == SIG_ERR){//throw the ball from parent to team lead, or from team lead to other team lead
         perror("Signal Error\n");
         exit(-1);
     }
 
-    if(sigset(SIGCLD, signal_handler1) == -1){//throw the ball between players
+    if(signal(SIGCLD, signal_handler1) == SIG_ERR){//throw the ball between players
         perror("Signal Error\n");
         exit(-1);
     }
@@ -79,7 +78,7 @@ int main(int argc, char** argv){
         exit(-1);
     }*/
 
-   if(sigset(SIGHUP, signal_handler3) == -1){//catch the signal from parent to stop send signals to players
+   if(signal(SIGHUP, signal_handler3) == SIG_ERR){//catch the signal from parent to stop send signals to players
         perror("Signal Error\n");
         exit(-1);
     }
@@ -96,7 +95,7 @@ void signal_handler(int sig){//team lead only
     number_balls++;
     next_player_pid=next_player[0];//next player is the first player in it's team
     printf("Signal %d,team lead player #%d , team #%d, PID = %d ,next player=%d\n", sig,player_number_in_team,player_team_number,getpid(),next_player_pid);
-    int a = sleep(3);
+    int a = sleep(4);
     if (a != 0){
         printf("Sleep is intrupted player #%d team #%d.\n",player_number_in_team,player_team_number);
         fflush(stdout);
@@ -115,6 +114,8 @@ void signal_handler1(int sig){
         next_player_pid=next_player[1];//next player is the other team lead
         kill(next_player_pid,SIGUSR1);//the ball gets back to the team lead,so throw it to the other team lead
         if (number_balls == 0){//if the team has no balls, then send signal to the parent to throw a new ball
+            sleep(1);
+            printf("The team #%d has no balls, so send signal to the parent to throw a new ball\n",player_team_number);
             kill(getppid(),SIGUSR1);//send signal SIGUSR1 to the parent to throw a new ball
         }
         return ;

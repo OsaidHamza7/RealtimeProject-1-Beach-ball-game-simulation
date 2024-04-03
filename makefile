@@ -1,11 +1,12 @@
 CC = gcc
-CFLAGS = -g -Wall
+CFLAGS = -g 
 
 ARGS= arguments.txt
 
 UILIBS = -lglut -lGLU -lGL -lm  -lrt
 LIBS = -lpthread
 NAMES = parent player
+
 all: parent player
 
 parent: parent.c functions.c

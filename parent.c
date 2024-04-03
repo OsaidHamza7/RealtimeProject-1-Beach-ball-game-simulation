@@ -1,7 +1,6 @@
 
 #include "header.h"
 
-
 //***********************************************************************************
 void checkArguments(int argc, char** argv, char* file_name);
 void readArgumentsFromFile(char* filename);
@@ -10,10 +9,7 @@ void createTeams();
 void signal_handler(int sig);
 void send_pides_to_team_lead(int first_player_pid,int other_team_lead_pid);
 void calculateTeamsScores();
-
 //***********************************************************************************
-
-
   int num_player;
   int i, status,n;
   int pid,next_pid = 0;
@@ -62,6 +58,14 @@ int main(int argc , char** argv){
   send_pides_to_team_lead(team2[0],team1[5]);//send pid of player1 in team2 and pid of team1 leader to the team2 lead
   sleep(3);
   
+  if(sigset(SIGUSR1, signal_handler) == -1){//throw the ball from parent to team lead, or from team lead to other team lead
+    perror("Signal Error\n");
+    exit(-1);
+  }
+  if(sigset(SIGUSR2, signal_handler) == -1){//throw the ball from parent to team lead, or from team lead to other team lead
+    perror("Signal Error\n");
+    exit(-1);
+  }
   //Start the game
   //start the round ,the parent initially will throw one ball to each team lead (by send signal SIGUSR1 to them)
   while (current_round_number <= NUMBER_OF_LOST_ROUNDS)
@@ -73,17 +77,10 @@ int main(int argc , char** argv){
   }
 
 
- if(sigset(SIGUSR1, signal_handler) == -1){//throw the ball from parent to team lead, or from team lead to other team lead
-    perror("Signal Error\n");
-    exit(-1);
-  }
-  if(sigset(SIGUSR2, signal_handler) == -1){//throw the ball from parent to team lead, or from team lead to other team lead
-    perror("Signal Error\n");
-    exit(-1);
-  }
-  while(1){
+
+  /*while(1){
     pause();
-  }
+  }*/
 
   sleep(1);
   // kill all children
@@ -115,8 +112,6 @@ void checkArguments(int argc, char** argv, char* file_name){
       strcpy(file_name,argv[1]);
   }
 }
-
-
 
 void createTeams(){
 
@@ -160,7 +155,7 @@ void createTeams(){
 
       }
 
-      execlp("./player", "player",player_number_in_team,player_team_number,next_player_pid,NULL);
+      execlp("./player", "player",player_number_in_team,player_team_number,next_player_pid,&RANGE_ENERGY,NULL);
       perror("Error:Execute player Failed.\n");
       exit(1);
       break;
@@ -201,7 +196,7 @@ void startRound(int round_number){
     kill(team2[5],SIGUSR2);
 
     // wait for current round to finish ( finishes after 7 seconds)
-    sleep(35);
+    sleep(10);
 
     printf("\n\n> Round #%d is finished.\n\n", round_number);
     fflush(stdout);
@@ -211,14 +206,16 @@ void startRound(int round_number){
     for (i = 0; i < NUMBER_OF_PLAYERS_In_TEAM; i++)
     {
         kill(team1[i], SIGHUP);
-        sleep(0.5);
+        sleep(0.05);
+        kill(team2[i], SIGHUP);
+        sleep(0.05);
     }
 
-    for (i = 0; i < NUMBER_OF_PLAYERS_In_TEAM; i++)
+    /*for (i = 0; i < NUMBER_OF_PLAYERS_In_TEAM; i++)
     {
         kill(team2[i], SIGHUP);
-        sleep(0.5);
-    }
+        sleep(0.00000001);
+    }*/
     
   // Open the public FIFO for reading
     read_message_fifo(TEAM1FIFO,message);
@@ -264,7 +261,6 @@ void send_pides_to_team_lead(int first_player_pid,int other_team_lead_pid){
 
   //kill(team_lead_pid, signal);
 }
-
 
 void readArgumentsFromFile(char* filename){
     char line[200];
@@ -327,8 +323,6 @@ void calculateTeamsScores(){
 
 
 }
-
-
 
 
 
