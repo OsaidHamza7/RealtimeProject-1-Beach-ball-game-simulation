@@ -1,6 +1,5 @@
 
 #include "header.h"
-#include "constants.h"
 
 
 int player_number_in_team;
@@ -11,11 +10,12 @@ int number_balls = 0;
 int next_player_pid,next_player[2];
 char team_fifo_name[20];
 int team_fifo;
+char message[BUFSIZ] ;
+
 //***********************************************************************************
 void signal_handler(int sig);
 void signal_handler1(int sig);
 void signal_handler3(int sig);
-void send_number_balls_to_parent();
 //***********************************************************************************
 
 
@@ -137,32 +137,10 @@ void signal_handler3(int sig){
     if (is_team_lead == 1)
     {
         //call function to send the number of balls to the parent
-        send_number_balls_to_parent();           
+        sprintf(message, "%d", number_balls);
+        send_message_fifo(team_fifo_name, message);    
+        number_balls = 0;
+
     }
 }
 
-void send_number_balls_to_parent(){
-
-    char message[BUFSIZ];
-
-    // Assuming this is part of the main or a function in player.c
-    /* Open the public FIFO for reading and writing */
-    if ((team_fifo = open(team_fifo_name, O_WRONLY)) == -1)
-    {
-        perror("hi error open fifo");
-        printf("\n\n\nA Player %d Died !!!!!! \n\n\n,", player_team_number);
-        fflush(stdout);
-        exit(1);
-    }
-    sprintf(message,"%d",number_balls);
-
-    if (write(team_fifo, message, sizeof(message)) == -1)
-    {
-        perror("write error");
-        printf("\n\n\nAb Player Died !!!!!! \n\n\n");
-        fflush(stdout);
-        exit(1);
-    }
-    close(team_fifo);
-    
-}

@@ -1,58 +1,55 @@
 #include "header.h"
-#include "constants.h"
-#include <stdbool.h>
 
-bool isPassedCorrectArguments(int argc, char** argv, char* message_error,int number_of_arguments){
-    if ( argc != number_of_arguments ){//check if the user passed the correct arguments
-      // Use the default file names
-      printf("Usage: Invalid arguments.\n");
-      printf("%s\n", message_error);
-      return false;
+
+void send_message_fifo(char* team_fifo_name,char* message){
+
+    int fifo;
+    /* Open the public FIFO for reading and writing */
+    if ((fifo = open(team_fifo_name, O_WRONLY)) == -1)
+    {
+        perror("open fifo error");
+        fflush(stdout);
+        exit(1);
     }
-  else {
-      //the user passed the correct arguments
-       printf("The user passed the correct arguments.\n");
-       return true;
-  }
+    if (write(fifo, message, sizeof(message)) == -1)
+    {
+        perror("write in fifo error");
+        fflush(stdout);
+        exit(1);
+    }
+    close(fifo);
+    
 }
-void readArgumentsFile(char* filename){
-    char line[200];
-    char label[50];
 
-    FILE *file;
-    file = fopen(filename, "r");
 
-    if (file == NULL){
-        perror("The file not exist\n");
-        exit(-2);
+void createFifo(char* fifo_name)
+{
+    // remove fifo if it's exist
+    remove(fifo_name);
+
+    if ((mkfifo(fifo_name, S_IFIFO | 0777)) == -1)
+    {
+        perror("Error Creating Fifo");
+        exit(-1);
     }
-    char separator[] = " ";
+}
 
-    while(fgets(line, sizeof(line), file) != NULL){
 
-        char *str = strtok(line, separator);
-        strncpy(label, str, sizeof(label));
-        str = strtok(NULL, separator);
-
-        if (strcmp(label, "NUMBER_OF_LOST_ROUNDS") == 0){
-             NUMBER_OF_LOST_ROUNDS = atoi(str);
-        }
-
-        else if (strcmp(label, "SIMULATION_THRISHOLD") == 0){
-             SIMULATION_THRISHOLD = atoi(str);
-        }
-        else if (strcmp(label, "ROUND_TIME") == 0){
-             ROUND_TIME = atoi(str);
-        }
-        else if (strcmp(label, "RANGE_ENERGY") == 0){
-             RANGE_ENERGY[0] = atoi(str);
-             str = strtok(NULL, separator);
-             RANGE_ENERGY[1] = atoi(str);
-        }
-         /*else {
-            printf("Invalid variable name: %s\n", label);
-            fflush(stdout);
-        }*/
+void read_message_fifo(char* team_fifo_name,char* message){
+    int fifo;
+    // Open the public FIFO for reading
+    if ((fifo = open(team_fifo_name, O_RDONLY)) == -1)
+    {
+        perror("open fifo error");
+        fflush(stdout);
+        exit(1);
     }
-    fclose(file);
+    if (read(fifo, message, sizeof(message)) == -1)
+    {
+        perror("read in fifo error");
+        fflush(stdout);
+        exit(1);
+    }
+    close(fifo);
+
 }
