@@ -15,7 +15,7 @@ void calculateTeamsScores();
   int pid,next_pid = 0;
   int team1[NUMBER_OF_PLAYERS_In_TEAM], team2[NUMBER_OF_PLAYERS_In_TEAM];
   int current_round_number = 1;
-
+  int pause_time_round;
   int f_des[2];
   char message[BUFSIZ],message2[BUFSIZ];
   char* player_team_number="1";
@@ -78,21 +78,15 @@ int main(int argc , char** argv){
       current_round_number++; 
   }
 
-
-
-  /*while(1){
-    pause();
-  }*/
-
   sleep(1);
   // kill all children
   printf("\nStart kill all players\n");
 
   for (i = 0; i < NUMBER_OF_PLAYERS_In_TEAM; i++)
   {
-      kill(team1[i], SIGKILL);
+      kill(team1[i], SIGQUIT);
       sleep(0.5);
-      kill(team2[i], SIGKILL);
+      kill(team2[i], SIGQUIT);
       sleep(0.5);
   }
 
@@ -196,8 +190,11 @@ void startRound(int round_number){
     kill(team1[5],SIGUSR1);//throw the ball to the team lead
     kill(team2[5],SIGUSR2);
 
-    // wait for current round to finish ( finishes after 7 seconds)
-    sleep(60);
+    // wait for current round to finish
+    pause_time_round = sleep(60);
+    while (pause_time_round != 0){
+        pause_time_round = sleep(pause_time_round);
+    }
 
     printf("\n\n> Round #%d is finished.\n\n", round_number);
     fflush(stdout);
@@ -207,10 +204,11 @@ void startRound(int round_number){
     for (i = 0; i < NUMBER_OF_PLAYERS_In_TEAM; i++)
     {
         kill(team1[i], SIGHUP);
-        sleep(0.05);
+        sleep(0.5);
         kill(team2[i], SIGHUP);
-        sleep(0.05);
+        sleep(0.5);
     }
+    
   // Open the public FIFO1 for reading for the team1
     read_message_fifo(TEAM1FIFO,message);
 
@@ -227,12 +225,10 @@ void startRound(int round_number){
 void signal_handler(int sig){ 
   if (sig == SIGUSR1){
     printf("The signal %d reached the parent,send ball to team #1 lead .\n\n",sig);
-    sleep(1);
     kill(team1[5],sig);
   }
   else if (sig == SIGUSR2){
     printf("The signal %d reached the parent,send ball to team #2 lead .\n\n",sig);
-    sleep(1);
     kill(team2[5],sig);
   }
 }

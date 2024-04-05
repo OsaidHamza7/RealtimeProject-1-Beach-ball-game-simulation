@@ -57,7 +57,7 @@ void read_message_fifo(char* team_fifo_name,char* message){
 
 
 
-void split_char(char* argv,int arr[]){
+void split_string(char* argv,int arr[]){
     char *token = strtok(argv, " ");
 
     if (token != NULL) {
