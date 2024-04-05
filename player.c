@@ -1,6 +1,7 @@
 
 #include "header.h"
 int  team_signal_number;
+int  other_team_signal_number;
 int  player_number_in_team;
 int  player_team_number;
 int  is_team_lead;
@@ -53,6 +54,7 @@ int main(int argc, char** argv){
     fflush(stdout);
     strcpy(team_fifo_name, (player_team_number == 1) ? TEAM1FIFO : TEAM2FIFO);
     team_signal_number = (player_team_number == 1) ? SIGUSR1 : SIGUSR2;
+    other_team_signal_number = (player_team_number == 1) ? SIGUSR2 : SIGUSR1;
 
     // set the alarm to change the energy of the player
     alarm(energyChangePerSecond);
@@ -102,17 +104,18 @@ void signal_handler(int sig){//team lead only
     number_balls_team++;
     next_player_pid=next_players_pids[0];//catch the ball from parent or other team lead ,so next player is the first player in it's team
     printf("Signal %d,team lead player #%d , team #%d, PID = %d ,next player=%d\n", sig,player_number_in_team,player_team_number,getpid(),next_player_pid);
-    sleep_status = sleep(calculate_and_apply_pause());
+    sleep_status = sleep(65);
     //team lead
     while (sleep_status != 0){
-    // if the round is finished, then stop the ball
-    if (isRoundFinished == 1){
-        printf("Sleep is intrupted player #%d team #%d.\n",player_number_in_team,player_team_number);
-        isRoundFinished = 0;
-        fflush(stdout);
-        return;
-    }
-    sleep_status = sleep(sleep_status);
+        // if the round is finished, then stop the ball
+        if (isRoundFinished == 1){
+            printf("Round finished, sleep is intrupted player #%d team #%d.\n",player_number_in_team,player_team_number);
+            fflush(stdout);
+            isRoundFinished = 0;
+            return;
+        }
+        //intrupted by signal SIGALARM,so continue the sleeping (while the round not finshed)
+        sleep_status = sleep(sleep_status);
     }
     //throw the ball(signal) to the first player in the team
     kill(next_player_pid ,SIGCLD);//next player is first player in the team
@@ -124,7 +127,7 @@ void signal_handler1(int sig){
         number_balls_team--;
         next_player_pid=next_players_pids[1];//next player is the other team lead
         sleep(1);
-        kill(next_player_pid,team_signal_number);//team lead catch the ball back from player 5,so throw it to the other team lead
+        kill(next_player_pid,other_team_signal_number);//team lead catch the ball back from player 5,so throw it to the other team lead
         if (number_balls_team == 0){//if the team has no balls, then team lead will send signal to the parent to throw a new ball
             sleep(1);//check if round is finished?or keep it like that?
             printf("The team #%d has no balls, so send signal to the parent to throw a new ball\n",player_team_number);
@@ -142,7 +145,7 @@ void signal_handler1(int sig){
             fflush(stdout);
             return;
         }
-        
+        //intrupted by signal SIGALARM,so continue the sleeping (while the round not finshed)
         sleep_status = sleep(sleep_status);
     }
     //throw the ball to the next player
@@ -183,28 +186,25 @@ int calculate_and_apply_pause() {
     int max_pause_time = 10;
 
     // Calculate base pause time inversely proportional to the energy
-    int pause_time = max_pause_time - (energy * max_pause_time) / 100;
+    int pause_time = max_pause_time - (1 * max_pause_time) / 100;
 
     // Determine if the ball falls
-    float probability_fall = (100 - energy) / 100.0;
+    float probability_fall = (100 - 1) / 100.0;
     int ball_falls = ((float)rand() / (float)RAND_MAX) < probability_fall;
 
 
-    // If the ball falls, add a random time between 1 to 5
+    // If the ball falls, add a random time between 1 to 5 to re-collect the ball
     if (ball_falls) {
         int a = rand() % 5 + 1;
         pause_time += a;
 
-        // Ensure pause time is at least 1 second
-        pause_time = (pause_time < 1) ? 1 : pause_time;
-
-        printf("Ball Failled %d,Player #%d Team #%d,Energy: %d%%, Pausing for %d seconds...\n",a,player_number_in_team,player_team_number, energy, pause_time);
+        printf("Ball Failled for %d,Player #%d Team #%d,Energy: %d%%, Pausing for %d seconds...\n",a,player_number_in_team,player_team_number, energy, pause_time);
         fflush(stdout);
         return pause_time;
     }
 
-    // Ensure pause time is at least 1 second
-    pause_time = (pause_time < 1) ? 1 : pause_time;
+    // Ensure pause time is at least 2 second
+    pause_time = (pause_time < 2) ? 2 : pause_time;
 
     printf("Player #%d Team #%d,Energy: %d%%, Pausing for %d seconds...\n",player_number_in_team,player_team_number, energy, pause_time);
     fflush(stdout);

@@ -211,7 +211,7 @@ void startRound(int round_number){
         kill(team2[i], SIGHUP);
         sleep(0.05);
     }
-  // Open the public FIFO2 for reading for the team1
+  // Open the public FIFO1 for reading for the team1
     read_message_fifo(TEAM1FIFO,message);
 
     // Open the public FIFO2 for reading for the team2
