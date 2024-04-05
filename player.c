@@ -113,16 +113,17 @@ void init_signals_handlers(){
 
 
 void signal_handler(int sig){//team lead only
+    isRoundFinished = 0;
     number_balls_team++;
-    next_player_pid=next_players_pids[0];//catch the ball from parent or other team lead ,so next player is the first player in it's team
-    printf("Signal %d,team lead player #%d , team #%d, PID = %d ,next player=%d\n", sig,player_number_in_team,player_team_number,getpid(),next_player_pid);
+    next_player_pid = next_players_pids[0];//catch the ball from parent or other team lead ,so next player is the first player in it's team
+    printf("Signal %d,player #%d,team #%d,PID=%d,next player=%d\n",sig,player_number_in_team,player_team_number,getpid(),next_player_pid);
     fflush(stdout);
     pause_time = calculate_and_apply_pause();
     //team lead
     while (pause_time != 0){
         // if the round is finished, then stop the ball
         if (isRoundFinished == 1){
-            printf("Sleep is intrupted player #%d team #%d due to Round finished.\n",player_number_in_team,player_team_number);
+            printf("Pause is intrupted player #%d team #%d due to Round finished.\n",player_number_in_team,player_team_number);
             fflush(stdout);
             isRoundFinished = 0;
             return;
@@ -135,13 +136,14 @@ void signal_handler(int sig){//team lead only
 }
 
 void signal_handler1(int sig){
+    isRoundFinished = 0;
     if (is_team_lead == 1){//reached the ball from player number 5 to the team lead,so send it to the other team lead (bu signal SIGTRAP)
         number_balls_team--;
         next_player_pid=next_players_pids[1];//next player is the other team lead
-        printf("The signal %d, reached to player #%d ,team #%d ,next player is %d\n", sig,player_number_in_team,player_team_number,next_player_pid);
+        printf("Signal %d,reached to player #%d,team #%d,PID = %d,next player = %d\n", sig,player_number_in_team,player_team_number,getpid(),next_player_pid);
         //sleep(1);
         fflush(stdout);
-        kill(next_player_pid,other_team_signal_number);//team lead catch the ball back from player 5,so throw it to the other team lead
+        kill(next_player_pid,team_signal_number);//team lead catch the ball back from player 5,so throw it to the other team lead
         if (number_balls_team == 0){//if the team has no balls, then team lead will send signal to the parent to throw a new ball
             //sleep(1);//check if round is finished?or keep it like that?
             printf("The team #%d has no balls, so send signal to the parent to throw a new ball\n",player_team_number);
@@ -150,14 +152,14 @@ void signal_handler1(int sig){
         }
         return;
     }
-    printf("The signal %d, reached to player #%d ,team #%d ,next player is %d\n", sig,player_number_in_team,player_team_number,next_player_pid);
+    printf("Signal %d,reached to player #%d ,team #%d ,next player = %d\n", sig,player_number_in_team,player_team_number,next_player_pid);
     fflush(stdout);
     pause_time = sleep(calculate_and_apply_pause());
     //normal player
     while (pause_time != 0){
         // if the round is finished, then stop the ball
         if (isRoundFinished == 1){
-            printf("Sleep is intrupted player #%d team #%d due to Round finished.\n",player_number_in_team,player_team_number);
+            printf("Pause is intrupted player #%d team #%d due to Round finished.\n",player_number_in_team,player_team_number);
             fflush(stdout);
             isRoundFinished = 0;
             return;

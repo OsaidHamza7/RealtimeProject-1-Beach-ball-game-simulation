@@ -184,14 +184,15 @@ void createTeams(){
 }
 
 void startRound(int round_number){
-    printf("\n\n> Round #%d started after 2 seconds.\n\n", round_number);
+    printf("\n\n> Round #%d started after 5 seconds.\n\n", round_number);
     fflush(stdout);
-    sleep(2);
+    sleep(5);
     kill(team1[5],SIGUSR1);//throw the ball to the team lead
-    kill(team2[5],SIGUSR2);
+   // sleep(2);
+    //kill(team2[5],SIGUSR2);
 
     // wait for current round to finish
-    pause_time_round = sleep(60);
+    pause_time_round = sleep(40);
     while (pause_time_round != 0){
         pause_time_round = sleep(pause_time_round);
     }
