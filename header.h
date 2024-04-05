@@ -17,9 +17,11 @@
 #include <sys/sem.h>
 #include <semaphore.h>
 #include <pthread.h>
-#include<sys/shm.h>
+#include <sys/shm.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <GL/glut.h>
+#include <math.h>
 
 
 #define NUMBER_OF_PLAYERS 12

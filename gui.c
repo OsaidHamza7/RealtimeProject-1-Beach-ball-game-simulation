@@ -1,8 +1,5 @@
-#include <GL/glut.h>
+#include "header.h"
 #include <math.h>
-#include <stdbool.h>
-#include <stdlib.h> // For rand() and srand()
-#include <time.h>   // For time(), to seed the random number generator
 
 
 // Player positions for red and blue teams

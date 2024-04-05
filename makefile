@@ -14,7 +14,10 @@ parent: parent.c functions.c
 
 player: player.c functions.c
 	$(CC) $(CFLAGS) -o player player.c functions.c $(LIBS)
-	
+
+uif: gui.c
+	$(CC) gui.c -o myprogram.elf $(UIFFLAGS)	
+
 run: parent
 	./parent $(ARGS) 
 

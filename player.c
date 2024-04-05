@@ -1,5 +1,7 @@
 
 #include "header.h"
+
+
 int  team_signal_number;
 int  other_team_signal_number;
 int  player_number_in_team;
