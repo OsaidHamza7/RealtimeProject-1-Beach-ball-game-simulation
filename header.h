@@ -43,6 +43,6 @@ static int RANGE_ENERGY[2] = {1,10};
 void send_message_fifo(char* team_fifo_name,char* message);
 void createFifo(char* fifo_name);
 void read_message_fifo(char* team_fifo_name,char* message);
-
+void split_char(char* argv,int arr[]);
 
 #endif

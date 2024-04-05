@@ -36,6 +36,7 @@ void createFifo(char* fifo_name)
 
 
 void read_message_fifo(char* team_fifo_name,char* message){
+
     int fifo;
     // Open the public FIFO for reading
     if ((fifo = open(team_fifo_name, O_RDONLY)) == -1)
@@ -52,4 +53,24 @@ void read_message_fifo(char* team_fifo_name,char* message){
     }
     close(fifo);
 
+}
+
+
+
+void split_char(char* argv,int arr[]){
+    char *token = strtok(argv, " ");
+
+    if (token != NULL) {
+        arr[0] = atoi(token);
+        token = strtok(NULL, " ");
+        if (token != NULL) {
+            arr[1] = atoi(token);
+        } else {
+            printf("Expected another argument integer but got NULL\n");
+        }
+    } else {
+        printf("Expected a argument integer but got NULL\n");
+    }
+    fflush(stdout);
+    return ;
 }

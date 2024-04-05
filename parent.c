@@ -73,7 +73,9 @@ int main(int argc , char** argv){
       startRound(current_round_number);
       calculateTeamsScores(); 
       printf("\n\nTeam results after the Round #%d finished :\n\tteam 1   \tteam 2     \n\t  %d\t\t  %d\n", current_round_number, team1_score, team2_score);
-      current_round_number++;
+      team1_round_balls = 0;
+      team2_round_balls = 0;
+      current_round_number++; 
   }
 
 
@@ -192,11 +194,10 @@ void startRound(int round_number){
     fflush(stdout);
     sleep(2);
     kill(team1[5],SIGUSR1);//throw the ball to the team lead
-    sleep(25);
     kill(team2[5],SIGUSR2);
 
     // wait for current round to finish ( finishes after 7 seconds)
-    sleep(10);
+    sleep(60);
 
     printf("\n\n> Round #%d is finished.\n\n", round_number);
     fflush(stdout);
@@ -210,37 +211,28 @@ void startRound(int round_number){
         kill(team2[i], SIGHUP);
         sleep(0.05);
     }
-
-    /*for (i = 0; i < NUMBER_OF_PLAYERS_In_TEAM; i++)
-    {
-        kill(team2[i], SIGHUP);
-        sleep(0.00000001);
-    }*/
-    
-  // Open the public FIFO for reading
+  // Open the public FIFO2 for reading for the team1
     read_message_fifo(TEAM1FIFO,message);
-    printf("The message is reached to the parent is : %s\n",message);
-    fflush(stdout);
-    // Open the public FIFO for reading
+
+    // Open the public FIFO2 for reading for the team2
     read_message_fifo(TEAM2FIFO,message2);
-    printf("The message is reached to the parent is : %s\n",message2);
-    fflush(stdout);
 
     team1_round_balls = atoi(message);
     team2_round_balls = atoi(message2);
     printf("\n\nRound #%d finished and current balls are:\n\tteam 1   \tteam 2     \n\t  %d\t\t  %d\n", round_number, team1_round_balls, team2_round_balls);
     fflush(stdout);
     round_number++;
-
 }
 
 void signal_handler(int sig){ 
   if (sig == SIGUSR1){
     printf("The signal %d reached the parent,send ball to team #1 lead .\n\n",sig);
+    sleep(1);
     kill(team1[5],sig);
   }
   else if (sig == SIGUSR2){
     printf("The signal %d reached the parent,send ball to team #2 lead .\n\n",sig);
+    sleep(1);
     kill(team2[5],sig);
   }
 }
@@ -320,7 +312,6 @@ void calculateTeamsScores(){
     printf("The round is draw,so the scores is unchanged\n");
     fflush(stdout);
   }
-
 
 }
 
