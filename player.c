@@ -28,7 +28,7 @@ void signal_handler3(int sig);
 void signal_handler_SIGALRM(int sig);
 int  get_random_energy(int min, int max);
 int  calculate_pause_time();
-void apply_pause_time();
+int  apply_pause_time();
 //***********************************************************************************
 
 int main(int argc, char** argv){
@@ -101,9 +101,10 @@ void signal_handler(int sig){//team lead only,catch the signal from parent or fr
     next_player_pid = next_players_pids[0];//next player will be the first player in it's team
     printf("Signal %d,player #%d,team #%d,PID=%d,next player=%d\n",sig,player_number_in_team,player_team_number,getpid(),next_player_pid);
     fflush(stdout);
-    apply_pause_time();
+    if (apply_pause_time()==0)//not finished
+        return;
     //if round not finished,so throw the ball(signal) to the first player in the team
-    kill(next_player_pid ,SIGCLD);//next player is first player in the team
+    kill(next_players_pids[0] ,SIGCLD);//next player is first player in the team
 }
 
 void signal_handler1(int sig){
@@ -113,7 +114,7 @@ void signal_handler1(int sig){
         printf("Signal %d,reached to player #%d,team #%d,PID = %d,next player = %d\n", sig,player_number_in_team,player_team_number,getpid(),next_player_pid);
         fflush(stdout);
         //sleep(1);
-        kill(next_player_pid,team_signal_number);//team lead catch the ball back from player 5,so throw it to the other team lead
+        kill(next_players_pids[1],team_signal_number);//team lead catch the ball back from player 5,so throw it to the other team lead
         number_balls_team--;
         if (number_balls_team == 0){//if the team has no balls, then team lead will send signal to the parent to throw a new ball
             //sleep(1);
@@ -126,7 +127,8 @@ void signal_handler1(int sig){
     //if the player is not team lead, so throw the ball to the next player,if round not finished
     printf("Signal %d,reached to player #%d ,team #%d ,next player = %d\n", sig,player_number_in_team,player_team_number,next_player_pid);
     fflush(stdout);
-    apply_pause_time();
+    if (apply_pause_time()==0)//not finished
+        return;
     //throw the ball to the next player
     kill(next_player_pid ,SIGCLD);
     //printf("The ball is thrown from player #%d ,team #%d to player #%d\n",player_number_in_team,player_team_number,next_player_pid);
@@ -198,7 +200,7 @@ int calculate_pause_time() {
     return time;
 }
 
-void apply_pause_time(){
+int apply_pause_time(){
 
     pause_time = calculate_pause_time();
     //team lead
@@ -208,11 +210,12 @@ void apply_pause_time(){
             printf("Pause is intrupted player #%d team #%d due to Round finished.\n",player_number_in_team,player_team_number);
             fflush(stdout);
             is_round_finished = 0;
-            return;
+            return 0;
         }
         //intrupted by signal SIGALARM,so continue the sleeping (while the round not finshed)
         pause_time = sleep(pause_time);
     }
+    return 1;
 }
 
 void get_information_player(char** argv){

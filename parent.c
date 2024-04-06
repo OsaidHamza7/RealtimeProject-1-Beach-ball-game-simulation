@@ -221,7 +221,7 @@ void startGame(){
   {
       startRound();
       calculateRoundScores(); 
-      printf("\n\nTeam results after the Round #%d finished :\n********\tteam 1   \tteam 2********\n\t\t  %d\t\t  %d\n", current_round_number, team1_score, team2_score);
+      printf("\n\nTeam results after the Round #%d finished :\n\tteam1  %d    -    %d  team2\n\n", current_round_number, team1_score, team2_score);
       team1_round_balls = 0;
       team2_round_balls = 0;
       current_round_number++; 
@@ -237,11 +237,10 @@ void startRound(){
 
     //the parent initially will throw one ball to each team lead (by send signal SIGUSR1 to them)
     kill(team1[5],SIGUSR1);//throw the ball to the team lead
-    sleep(2);
     kill(team2[5],SIGUSR2);
 
     // wait for current round to finish
-    pause_time_round = sleep(40);
+    pause_time_round = sleep(10);
     while (pause_time_round != 0){
         pause_time_round = sleep(pause_time_round);
     }
