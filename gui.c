@@ -1,5 +1,75 @@
-#include "header.h"
+#include <GL/glut.h>
 #include <math.h>
+#include <stdbool.h>
+#include <stdlib.h> // For rand() and srand()
+#include <time.h>   // For time(), to seed the random number generator
+
+// Function to draw a rectangle
+void drawRectangle(float x, float y, float width, float height, float r, float g, float b) {
+    glColor3f(r, g, b);
+    glBegin(GL_QUADS);
+    glVertex2f(x, y);
+    glVertex2f(x + width, y);
+    glVertex2f(x + width, y + height);
+    glVertex2f(x, y + height);
+    glEnd();
+}
+
+// Function to draw the Palestinian flag
+void drawPalestinianFlag(float x, float y, float width, float height) {
+    // Draw the black stripe
+    drawRectangle(x, y + 2 * (height / 3), width, height / 3, 0.0f, 0.0f, 0.0f);
+    // Draw the white strip
+    drawRectangle(x, y + (height / 3), width, height / 3, 1.0f, 1.0f, 1.0f);
+    // Draw the green stripe
+    drawRectangle(x, y, width, height / 3, 0.0f, 0.5f, 0.0f);
+    // Draw the red triangle
+    glBegin(GL_TRIANGLES);
+    glColor3f(1.0f, 0.0f, 0.0f);
+    glVertex2f(x, y);
+    glVertex2f(x, y + height);
+    glVertex2f(x + width / 2, y + height / 2);
+    glEnd();
+}
+
+void drawSouthAfricanFlag(float x, float y, float width, float height) {
+    // Draw three horizontal rectangles (blue, white, red)
+    drawRectangle(x, y, width, height / 3, 0.0f, 0.0f, 0.50f); // Blue
+    drawRectangle(x, y + height / 3, width, height / 3, 1.0f, 1.0f, 1.0f); // White
+    drawRectangle(x, y + 2 * height / 3, width, height / 3, 0.8f, 0.0f, 0.0f); // Red
+
+    // Draw the large white triangle
+    glBegin(GL_TRIANGLES);
+    glColor3f(1.0f, 1.0f, 1.0f); // White
+    glVertex2f(x, y);
+    glVertex2f(x, y + height);
+    glVertex2f(x + 3 * width / 5, y + height / 2);  
+    glEnd();
+    drawRectangle(x, y + height / 2.5, width, height / 5, 0.0f, 0.5f, 0.0f); 
+
+   glBegin(GL_TRIANGLES);
+    glColor3f(0.0f, 0.5f, 0.0f); // Green
+    glVertex2f(x, y + height / 15);
+    glVertex2f(x, y + 14 * height / 15);
+    glVertex2f(x + 11 * width / 20, y + height / 2);  
+    glEnd();
+
+    // Draw the yellow triangle, same size as before
+    glBegin(GL_TRIANGLES);
+    glColor3f(0.9f, 0.8f, 0.0f); // Yellow
+    glVertex2f(x, y + height / 5);
+    glVertex2f(x, y + 4 * height / 5);
+    glVertex2f(x + width / 3, y + height / 2);  
+    glEnd();
+
+    // Draw the black triangle
+    glBegin(GL_TRIANGLES);
+    glColor3f(0.0f, 0.0f, 0.0f); 
+    glVertex2f(x, y + 3 * height / 10);
+    glVertex2f(x, y + 7 * height / 10);
+    glVertex2f(x + width / 4, y + height / 2);  
+    glEnd();
+}
 
 
 // Player positions for red and blue teams
@@ -8,6 +78,7 @@ float playerPositions[2][6][2] = {
     {{-0.3, 0.0}, {-0.45, -0.35}, {-0.6, -0.5}, {-0.75, 0.0}, {-0.6, 0.5}, {-0.45, 0.35}} // Blue team
 };
 // Global variables for ball positions
+int ballTeam[2] = {0, 1}; // 0 for Red team, 1 for Blue team
 float ballPositions[2][2] = {{0.0, 0.0}, {0.0, 0.0}}; // x, y positions for both balls
 float interpolationSpeed = 0.02; // Speed of the ball's movement towards the target
 
@@ -30,18 +101,8 @@ void drawPlayer(float x, float y, float r, float g, float b) {
     glEnd();
 }
 
-void drawHalfCircle(float x, float y, int segments, float startAngle, float endAngle) {
-    glBegin(GL_LINE_STRIP);
-    for (int i = 0; i <= segments; ++i) {
-        float angle = startAngle + i * (endAngle - startAngle) / segments;
-        float dx = x + 0.07 * cos(angle);
-        float dy = y + 0.17 * sin(angle);
-        glVertex2f(dx, dy);
-    }
-    glEnd();
-}
-void drawBall(float x, float y) {
-    glColor3f(0.5, 0.5, 0.5); // Set ball color to gold
+void drawBall(float x, float y, float r, float g, float b) {
+    glColor3f(r, g, b); // Set ball color to gold
     glBegin(GL_TRIANGLE_FAN);
     glVertex2f(x, y); // Center of the ball
     for (int i = 0; i <= 360; i++) {
@@ -52,15 +113,9 @@ void drawBall(float x, float y) {
     }
     glEnd();
 }
-void drawText1(const char *text, float x, float y) {
-    glColor3f(1.0, 0.0, 0.0); // Set text color to white
-    glRasterPos2f(x, y); // Position the text on the screen
-    for (const char* c = text; *c != '\0'; c++) {
-        glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, *c); // Display each character
-    }
-}
-void drawText2(const char *text, float x, float y) {
-    glColor3f(0.0, 0.0, 1.0); // Set text color to white
+
+void drawText(const char *text, float x, float y, float r, float g, float b) {
+    glColor3f(r, g, b); // Set text color
     glRasterPos2f(x, y); // Position the text on the screen
     for (const char* c = text; *c != '\0'; c++) {
         glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, *c); // Display each character
@@ -68,49 +123,46 @@ void drawText2(const char *text, float x, float y) {
 }
 
 
+void updateBallPosition(int ball);
 
-void updateBallPosition(int value) {
-    for (int team = 0; team < 2; team++) {
-        float targetX = playerPositions[team][currentTarget[team]][0] + (team == 0 ? 0.06 : -0.06);
-        float targetY = playerPositions[team][currentTarget[team]][1];
-        float directionX = targetX - ballPositions[team][0];
-        float directionY = targetY - ballPositions[team][1];
-        float length = sqrt(directionX * directionX + directionY * directionY);
+void switchBallTeam(int ball) {
+    ballTeam[ball] = 1 - ballTeam[ball]; // Switch the ball to the other team
+    currentTarget[ball] = 0; // Reset target player for the new team
+    // Reset ball position (optional based on your game's logic)
+    ballPositions[ball][0] = 0.0;
+    ballPositions[ball][1] = 0.0;
+    // Immediately update the ball position for the new team
+    updateBallPosition(ball);
+}
 
-        // Normalize direction
-        if (length != 0) {
-            directionX /= length;
-            directionY /= length;
-        }
+void updateBallPosition(int ball) {
+    int team = ballTeam[ball];
+    float targetX = playerPositions[team][currentTarget[ball]][0] + (team == 0 ? 0.06 : -0.06); // Adjust based on team
+    float targetY = playerPositions[team][currentTarget[ball]][1];
+    float directionX = targetX - ballPositions[ball][0];
+    float directionY = targetY - ballPositions[ball][1];
+    float length = sqrt(directionX * directionX + directionY * directionY);
+    float speed = 0.01 + (float)rand() / (RAND_MAX / 0.03); // Random speed between 0.01 and 0.04
 
-        // Move ball towards the target
-        ballPositions[team][0] += directionX * interpolationSpeed;
-        ballPositions[team][1] += directionY * interpolationSpeed;
+    if (length > 0) {
+        directionX /= length; // Normalize direction vector
+        directionY /= length; // Normalize direction vector
+    }
 
-        // Check if ball has reached the target (within a small threshold)
-        if (length < interpolationSpeed) {
-            // Change speed randomly for next movement
-            interpolationSpeed = 0.01 + (float)rand() / RAND_MAX * 0.03; // Random speed between 0.01 and 0.04
+    ballPositions[ball][0] += directionX * speed; // Use random speed for movement
+    ballPositions[ball][1] += directionY * speed; // Use random speed for movement
 
-            if (moveToLeader[team]) {
-                // Move ball back to the leader
-                currentTarget[team] = 0;
-                moveToLeader[team] = false;
-            } else {
-                // Move ball to the next player
-                currentTarget[team]++;
-                if (currentTarget[team] > 5) {
-                    moveToLeader[team] = true;
-                    currentTarget[team] = 0;
-                }
-            }
+    if (length < speed) { // If the ball has reached (or is about to reach) the target
+        currentTarget[ball]++;
+        if (currentTarget[ball] >= 6) { // Check if the ball needs to switch teams
+            switchBallTeam(ball);
+            return; // Exit to avoid further processing
         }
     }
 
-    glutPostRedisplay(); // Redraw the scene with new positions
-    glutTimerFunc(16, updateBallPosition, 0); // Continue updating at a high frequency for smooth animation
+    glutPostRedisplay(); // Request a redraw
+    glutTimerFunc(16, updateBallPosition, ball); // Schedule the next update
 }
-
 
 void display() {
     // Clear the screen and draw the field...
@@ -199,7 +251,6 @@ void display() {
     //Draw right half circle
     //drawHalfCircle(0.65, 0.0, 180, -M_PI / 2, M_PI / 2);
 
-
     for (int team = 0; team < 2; team++) {
         for (int player = 0; player < 6; player++) {
             float playerX = playerPositions[team][player][0];
@@ -214,16 +265,17 @@ void display() {
 
     // Draw the ball for each team at the appropriate position
     // Inside the display function, replace the drawBall calls with:
-    drawBall(ballPositions[0][0], ballPositions[0][1]); // For red team
-    drawBall(ballPositions[1][0], ballPositions[1][1]); // For blue team
+    drawBall(ballPositions[0][0], ballPositions[0][1], 0.0, 0.0, 0.0); // For red team
+    drawBall(ballPositions[1][0], ballPositions[1][1], 0.5, 0.5, 0.5); // For blue team
 
+    drawPalestinianFlag(0.15, 0.75, 0.15, 0.15);
+    drawSouthAfricanFlag(-0.3, 0.75, 0.15, 0.15);
 
-    drawText2("Score: 0", -0.9, 0.85); // Display near the top-left corner for one team
-    drawText1("Score: 0", 0.7, 0.85); // Display near the top-right corner for the other team
+    drawText("0", -0.1, 0.8, 0.0, 0.0, 1.0);
+    drawText("0", 0.07, 0.8, 1.0, 0.0, 0.0);
 
-    drawText2("Team A", -0.9,-0.9); // Display near the bottom-left corner for one team
-    drawText1("Team B", 0.7, -0.9); // Display near the bottom-right corner for the other team
-
+    drawText("Team A", -0.9, -0.9, 0.0, 0.0, 1.0); // Display near the bottom-left corner for the other team
+    drawText("Team B", 0.7, -0.9, 1.0, 0.0, 0.0); // Display near the bottom-right corner for the other team
 
     glFlush();
 }
@@ -240,8 +292,8 @@ int main(int argc, char** argv) {
 
     // Register callback functions
     glutDisplayFunc(display); // Register display callback function
-    glutTimerFunc(1000, updateBallPosition, 0); // Start the ball movement animation with the timer callback function
-
+    glutTimerFunc(1000, updateBallPosition, 0); // For ball 0
+    glutTimerFunc(1000, updateBallPosition, 1); // For ball 1
     glutMainLoop(); // Enter the GLUT event processing loop
     return 0;
 }
