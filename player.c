@@ -1,6 +1,5 @@
 #include "header.h"
 
-
 int  team_signal_number;
 int  other_team_signal_number;
 int  player_number_in_team;
@@ -19,14 +18,16 @@ int energy_change_per_second = 10;
 int sleep_status;
 int pause_time;
 int energy_range[2];
+
 //***********************************************************************************
+void get_information_player(char** argv);
 void init_signals_handlers();
 void signal_handler(int sig);
 void signal_handler1(int sig);
 void signal_handler3(int sig);
 void signal_handler_SIGALRM(int sig);
-int  calculate_pause_time();
 int  get_random_energy(int min, int max);
+int  calculate_pause_time();
 void apply_pause_time();
 //***********************************************************************************
 
@@ -39,25 +40,9 @@ int main(int argc, char** argv){
     }
 
     srand((unsigned) getpid()); // seed for the random function with the ID of the current process
-    //get the player number in the team, the team number, and the next player pid
-    player_number_in_team = atoi(argv[1]);
-    player_team_number = atoi(argv[2]);
-    split_string(argv[4],energy_range);
-
-    if(is_team_lead == 1){//team lead
-        //split the next player pid to 2 pids, the first one is the first player in the team, and the second one is the other team lead
-        split_string(argv[3],next_players_pids);
-        printf("Team leader Player #%d in team #%d with PID = %d And next player1=%d, next team lead=%d\n",player_number_in_team, player_team_number, getpid(), next_players_pids[0], next_players_pids[1]);
-
-    } else {//normal player
-        next_player_pid = atoi(argv[3]);
-        printf("Player #%d from team #%d with PID = %d And next player PID = %d\n",player_number_in_team,player_team_number,getpid(),next_player_pid);
-    }
-    fflush(stdout);
-    strcpy(team_fifo_name, (player_team_number == 1) ? TEAM1FIFO : TEAM2FIFO);
-    team_signal_number = (player_team_number == 1) ? SIGUSR1 : SIGUSR2;
-    other_team_signal_number = (player_team_number == 1) ? SIGUSR2 : SIGUSR1;
-    is_team_lead = (player_number_in_team == 6) ? 1 : 0 ;//team lead or not
+    
+    //get the pinformation of the player
+    get_information_player(argv);
 
     // set the alarm to change the energy of the player every specific time
     alarm(energy_change_per_second);
@@ -109,7 +94,6 @@ void init_signals_handlers(){
         exit(-1);
     }
 }
-
 
 void signal_handler(int sig){//team lead only,catch the signal from parent or from other team lead
     is_round_finished = 0;
@@ -171,38 +155,6 @@ void signal_handler_SIGALRM(int sig){
     alarm(energy_change_per_second);
 }
 
-// function calculate_and_apply_pause is used to calculate the pause time for the player
-int calculate_pause_time() {
-    
-    // Define the maximum pause time when energy is zero
-    int max_pause_time = 10;
-
-    // Calculate base pause time inversely proportional to the energy
-    int time = max_pause_time - (energy * max_pause_time) / 100;
-
-    // Determine if the ball falls
-    float probability_fall = (100 - energy) / 100.0;
-    int ball_falls = ((float)rand() / (float)RAND_MAX) < probability_fall;
-
-
-    // If the ball falls, add a random time between 1 to 5 to re-collect the ball
-    if (ball_falls) {
-        int a = rand() % 5 + 1;
-        time += a;
-
-        printf("Ball Failled for %d,Player #%d Team #%d,Energy: %d%%, Pausing for %d seconds...\n",a,player_number_in_team,player_team_number, energy, time);
-        fflush(stdout);
-        return time;
-    }
-
-    // Ensure pause time is at least 2 second
-    time = (time < 2) ? 2 : time;
-
-    printf("Player #%d Team #%d,Energy: %d%%, Pausing for %d seconds...\n",player_number_in_team,player_team_number, energy, time);
-    fflush(stdout);
-    return time;
-}
-
 int get_random_energy(int min, int max) {
 
     if (min > max) {
@@ -216,7 +168,38 @@ int get_random_energy(int min, int max) {
     return randomNumber;
 }
 
+// function calculate_and_apply_pause is used to calculate the pause time for the player
+int calculate_pause_time() {
+    
+    // Define the maximum pause time when energy is zero
+    int max_pause_time = 10;
+
+    // Calculate base pause time inversely proportional to the energy
+    int time = max_pause_time - (energy * max_pause_time) / 100;
+
+    // Determine if the ball falls
+    float probability_fall = (100 - energy) / 100.0;
+    int ball_falls = ((float)rand() / (float)RAND_MAX) < probability_fall;
+
+    // If the ball falls, add a random time between 1 to 5 to re-collect the ball
+    if (ball_falls) {
+        int a = rand() % 5 + 1;
+        time += a;
+
+        printf("Ball Failled for %d,Player #%d Team #%d,Energy: %d%%, Pausing for %d seconds...\n",a,player_number_in_team,player_team_number, energy, time);
+        fflush(stdout);
+        return time;
+    }
+    // Ensure pause time is at least 2 second
+    time = (time < 2) ? 2 : time;
+
+    printf("Player #%d Team #%d,Energy: %d%%, Pausing for %d seconds...\n",player_number_in_team,player_team_number, energy, time);
+    fflush(stdout);
+    return time;
+}
+
 void apply_pause_time(){
+
     pause_time = calculate_pause_time();
     //team lead
     while (pause_time != 0){
@@ -230,4 +213,26 @@ void apply_pause_time(){
         //intrupted by signal SIGALARM,so continue the sleeping (while the round not finshed)
         pause_time = sleep(pause_time);
     }
+}
+
+void get_information_player(char** argv){
+
+    player_number_in_team = atoi(argv[1]);
+    player_team_number = atoi(argv[2]);
+    split_string(argv[4],energy_range);
+    is_team_lead = (player_number_in_team == 6) ? 1 : 0 ;//team lead or not
+
+    if(is_team_lead == 1){//team lead
+        //split the next player pid to 2 pids, the first one is the first player in the team, and the second one is the other team lead
+        split_string(argv[3],next_players_pids);
+        printf("Team leader Player #%d in team #%d with PID = %d And next player1=%d, next team lead=%d\n",player_number_in_team, player_team_number, getpid(), next_players_pids[0], next_players_pids[1]);
+
+    } else {//normal player
+        next_player_pid = atoi(argv[3]);
+        printf("Player #%d from team #%d with PID = %d And next player PID = %d\n",player_number_in_team,player_team_number,getpid(),next_player_pid);
+    }
+    fflush(stdout);
+    strcpy(team_fifo_name, (player_team_number == 1) ? TEAM1FIFO : TEAM2FIFO);
+    team_signal_number = (player_team_number == 1) ? SIGUSR1 : SIGUSR2;
+    other_team_signal_number = (player_team_number == 1) ? SIGUSR2 : SIGUSR1;
 }

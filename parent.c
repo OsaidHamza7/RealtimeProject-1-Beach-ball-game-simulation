@@ -4,25 +4,27 @@
 //***********************************************************************************
 void checkArguments(int argc, char** argv, char* file_name);
 void readArgumentsFromFile(char* filename);
-void startRound();
 void createTeams();
-void signal_handler(int sig);
 void sendPidesToTeamlead(int first_player_pid,int other_team_lead_pid);
+void init_signals_handlers();
+void signal_handler(int sig);
+void startGame();
+void startRound();
 void calculateRoundScores();
+void killAllPlayers();
 //***********************************************************************************
-  int num_player;
-  int i, status,n;
-  int pid,next_pid = 0;
-  int team1[NUMBER_OF_PLAYERS_In_TEAM], team2[NUMBER_OF_PLAYERS_In_TEAM];
-  int current_round_number = 1;
-  int pause_time_round;
-  int f_des[2];
-  char message[BUFSIZ],message2[BUFSIZ],ranges[10];
-  char* player_team_number="1";
+int num_player;
+int i, status,n;
+int pid,next_pid = 0;
+int team1[NUMBER_OF_PLAYERS_In_TEAM], team2[NUMBER_OF_PLAYERS_In_TEAM];
+int current_round_number = 1;
+int pause_time_round;
+int f_des[2];
+char message[BUFSIZ],message2[BUFSIZ],ranges[10];
+char* player_team_number="1";
 
-  //teams score
-  int team1_score = 0,team2_score = 0;
-  int team1_round_balls = 0,team2_round_balls = 0;
+int team1_score = 0,team2_score = 0;//teams score
+int team1_round_balls = 0,team2_round_balls = 0;
 
 int main(int argc , char** argv){
   char* file_name = (char*)malloc(50*sizeof(char));
@@ -30,67 +32,36 @@ int main(int argc , char** argv){
   //Start the program
   printf("*******************************************\nStart the program, My process ID is %d\n\n", getpid());
 
-  //check the arguments
+  //check a number of arguments,and read a file name
   checkArguments(argc, argv, file_name);
-  printf("Reading the arguments from the file: %s\n\n", file_name);
 
   //read the arguments from the file
   readArgumentsFromFile(file_name);
-  
-  //print the arguments 
-  printf("\n*****************************************************\n");
-  printf("NUMBER_OF_LOST_ROUNDS = %d\n", NUMBER_OF_LOST_ROUNDS);
-  printf("SIMULATION_THRISHOLD = %d\n", SIMULATION_THRISHOLD);
-  printf("ROUND_TIME = %d\n", ROUND_TIME);
-  printf("RANGE_ENERGY = %d %d\n", RANGE_ENERGY[0], RANGE_ENERGY[1]);
-  printf("*****************************************************\n\n");
 
   //create the teams
   createTeams();
 
-  //create a two fifos for the teams
+  //create a two fifos for the teams,that used to send the number of balls that the team have from team lead to the parent
   createFifo(TEAM1FIFO);
   createFifo(TEAM2FIFO);
   printf("\n\nThe fifos for the teams was created successfully\n\n");
-  //Send Pids of ( 'first player' and 'other team lead') to each team lead ,after creating the teams
+
+  //Send Pids of ('first player' and 'other team lead') to each team lead ,after creating the teams
   sendPidesToTeamlead(team1[0],team2[5]); //send pid of player1 in team1 and pid of team2 leader to the team1 lead
   sleep(3);
   sendPidesToTeamlead(team2[0],team1[5]);//send pid of player1 in team2 and pid of team1 leader to the team2 lead
   sleep(3);
   
-  if(sigset(SIGUSR1, signal_handler) == -1){//throw the ball from parent to team lead, or from team lead to other team lead
-    perror("Signal Error\n");
-    exit(-1);
-  }
-  if(sigset(SIGUSR2, signal_handler) == -1){//throw the ball from parent to team lead, or from team lead to other team lead
-    perror("Signal Error\n");
-    exit(-1);
-  }
-  
+  //init signals handlers
+  init_signals_handlers();
+
   //Start the game
-  //start the round ,the parent initially will throw one ball to each team lead (by send signal SIGUSR1 to them)
-  while (current_round_number <= NUMBER_OF_LOST_ROUNDS)
-  {
-      startRound();
-      calculateRoundScores(); 
-      printf("\n\nTeam results after the Round #%d finished :\n********\tteam 1   \tteam 2********\n\t\t  %d\t\t  %d\n", current_round_number, team1_score, team2_score);
-      team1_round_balls = 0;
-      team2_round_balls = 0;
-      current_round_number++; 
-  }
+  startGame();
 
   sleep(1);
-  // kill all children
-  printf("\nStart kill all players\n");
 
-  for (i = 0; i < NUMBER_OF_PLAYERS_In_TEAM; i++)
-  {
-      kill(team1[i], SIGQUIT);
-      sleep(0.5);
-      kill(team2[i], SIGQUIT);
-      sleep(0.5);
-  }
-
+  //kill all players
+  killAllPlayers();
   printf("\n\n**Good Bay**\n\n");
 
     return 0;
@@ -108,6 +79,48 @@ void checkArguments(int argc, char** argv, char* file_name){
       // Use the file names provided by the user
       strcpy(file_name,argv[1]);
   }
+}
+
+void readArgumentsFromFile(char* filename){
+    char line[200];
+    char label[50];
+
+    FILE *file;
+    file = fopen(filename, "r");
+
+    if (file == NULL){
+        perror("The file not exist\n");
+        exit(-2);
+    }
+    char separator[] = " ";
+    
+
+    while(fgets(line, sizeof(line), file) != NULL){
+        char *str = strtok(line, separator);
+        strncpy(label, str, sizeof(label));
+        str = strtok(NULL, separator);
+
+        if (strcmp(label, "NUMBER_OF_LOST_ROUNDS") == 0){
+             NUMBER_OF_LOST_ROUNDS = atoi(str);
+        }
+
+        else if (strcmp(label, "SIMULATION_THRISHOLD") == 0){
+             SIMULATION_THRISHOLD = atoi(str);
+        }
+        else if (strcmp(label, "ROUND_TIME") == 0){
+             ROUND_TIME = atoi(str);
+        }
+        else if (strcmp(label, "RANGE_ENERGY") == 0){
+             RANGE_ENERGY[0] = atoi(str);
+             str = strtok(NULL, separator);
+             RANGE_ENERGY[1] = atoi(str);
+        }
+         /*else {
+            printf("Invalid variable name: %s\n", label);
+            fflush(stdout);
+        }*/
+    }
+    fclose(file);
 }
 
 void createTeams(){
@@ -185,13 +198,47 @@ void createTeams(){
 
 }
 
+void sendPidesToTeamlead(int first_player_pid,int other_team_lead_pid){
+  close(f_des[0]);
+  char message1[20];
+  sprintf(message1, "%d %d", first_player_pid,other_team_lead_pid);//convert the (pid of first player in team1) to string
+
+  if (write(f_des[1], message1, strlen(message1)) != -1 ) {
+    printf("Message sent by parent: [%s] to the team lead\n", message1);
+    fflush(stdout);
+  }
+  else {
+    perror("Write");
+    exit(5);
+  }
+
+  //kill(team_lead_pid, signal);
+}
+
+void startGame(){
+
+  while (current_round_number <= NUMBER_OF_LOST_ROUNDS)
+  {
+      startRound();
+      calculateRoundScores(); 
+      printf("\n\nTeam results after the Round #%d finished :\n********\tteam 1   \tteam 2********\n\t\t  %d\t\t  %d\n", current_round_number, team1_score, team2_score);
+      team1_round_balls = 0;
+      team2_round_balls = 0;
+      current_round_number++; 
+  }
+  printf("\n\nThe game is finished\n\n");
+
+}
+
 void startRound(){
     printf("\n\n> Round #%d started after 5 seconds.\n\n", current_round_number);
     fflush(stdout);
     sleep(5);
+
+    //the parent initially will throw one ball to each team lead (by send signal SIGUSR1 to them)
     kill(team1[5],SIGUSR1);//throw the ball to the team lead
-   // sleep(2);
-    //kill(team2[5],SIGUSR2);
+    sleep(2);
+    kill(team2[5],SIGUSR2);
 
     // wait for current round to finish
     pause_time_round = sleep(40);
@@ -212,17 +259,24 @@ void startRound(){
         sleep(0.5);
     }
     
-    // Open the public FIFO1 for reading for the team1
-    read_message_fifo(TEAM1FIFO,message);
-
-    // Open the public FIFO2 for reading for the team2
-    read_message_fifo(TEAM2FIFO,message2);
+    read_message_fifo(TEAM1FIFO,message);// Open the public FIFO2 for reading for the team1
+    read_message_fifo(TEAM2FIFO,message2);// Open the public FIFO2 for reading for the team2
 
     team1_round_balls = atoi(message);
     team2_round_balls = atoi(message2);
     printf("\n\nRound #%d finished and current balls are:\n\tteam 1   \tteam 2     \n\t  %d\t\t  %d\n", current_round_number, team1_round_balls, team2_round_balls);
     fflush(stdout);
-    current_round_number++;
+}
+
+void init_signals_handlers(){
+  if(sigset(SIGUSR1, signal_handler) == -1){//throw the ball from parent to team lead, or from team lead to other team lead
+    perror("Signal Error\n");
+    exit(-1);
+  }
+  if(sigset(SIGUSR2, signal_handler) == -1){//throw the ball from parent to team lead, or from team lead to other team lead
+    perror("Signal Error\n");
+    exit(-1);
+  }
 }
 
 void signal_handler(int sig){ 
@@ -234,65 +288,6 @@ void signal_handler(int sig){
     printf("The signal %d reached the parent,send ball to team #2 lead .\n\n",sig);
     kill(team2[5],sig);
   }
-}
-
-void sendPidesToTeamlead(int first_player_pid,int other_team_lead_pid){
-  close(f_des[0]);
-  char message1[20];
-  sprintf(message1, "%d %d", first_player_pid,other_team_lead_pid);//convert the (pid of first player in team1) to string
-
-  if (write(f_des[1], message1, strlen(message1)) != -1 ) {
-    printf("Message sent by parent: [%s] to the team lead\n", message1);
-    fflush(stdout);
-  }
-  else {
-    perror("Write");
-    exit(5);
-  }
-
-  //kill(team_lead_pid, signal);
-}
-
-void readArgumentsFromFile(char* filename){
-    char line[200];
-    char label[50];
-
-    FILE *file;
-    file = fopen(filename, "r");
-
-    if (file == NULL){
-        perror("The file not exist\n");
-        exit(-2);
-    }
-    char separator[] = " ";
-    
-
-    while(fgets(line, sizeof(line), file) != NULL){
-        char *str = strtok(line, separator);
-        strncpy(label, str, sizeof(label));
-        str = strtok(NULL, separator);
-
-        if (strcmp(label, "NUMBER_OF_LOST_ROUNDS") == 0){
-             NUMBER_OF_LOST_ROUNDS = atoi(str);
-        }
-
-        else if (strcmp(label, "SIMULATION_THRISHOLD") == 0){
-             SIMULATION_THRISHOLD = atoi(str);
-        }
-        else if (strcmp(label, "ROUND_TIME") == 0){
-             ROUND_TIME = atoi(str);
-        }
-        else if (strcmp(label, "RANGE_ENERGY") == 0){
-             RANGE_ENERGY[0] = atoi(str);
-             str = strtok(NULL, separator);
-             RANGE_ENERGY[1] = atoi(str);
-        }
-         /*else {
-            printf("Invalid variable name: %s\n", label);
-            fflush(stdout);
-        }*/
-    }
-    fclose(file);
 }
 
 void calculateRoundScores(){
@@ -314,5 +309,13 @@ void calculateRoundScores(){
 
 }
 
-
-
+void killAllPlayers(){
+  printf("\nStart kill all players\n");
+  for (i = 0; i < NUMBER_OF_PLAYERS_In_TEAM; i++)
+  {
+      kill(team1[i], SIGQUIT);
+      sleep(0.5);
+      kill(team2[i], SIGQUIT);
+      sleep(0.5);
+  }
+}
