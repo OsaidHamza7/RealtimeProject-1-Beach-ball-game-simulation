@@ -183,12 +183,15 @@ int calculate_pause_time() {
     float probability_fall = (100 - energy) / 100.0;
     int ball_falls = ((float)rand() / (float)RAND_MAX) < probability_fall;
 
-    // If the ball falls, add a random time between 1 to 5 to re-collect the ball
+    // If the ball falls, calculate additional time inversely proportional to energy
     if (ball_falls) {
-        int a = rand() % 5 + 1;
-        time += a;
-
-        printf("Ball Failled for %d,Player #%d Team #%d,Energy: %d%%, Pausing for %d seconds...\n",a,player_number_in_team,player_team_number, energy, time);
+        int max = 5; // Maximum additional time
+        int min = 1; // Minimum additional time
+        // Scale additional time based on energy: lower energy gets more time
+        int additional_time = min + (int)((max - min) * (1 - ((float)energy / 100)));
+        additional_time = additional_time + rand() % (max - additional_time + 1);
+        time += additional_time;
+        printf("Ball Failled for %d,Player #%d Team #%d,Energy: %d%%, Pausing for %d seconds...\n",additional_time,player_number_in_team,player_team_number, energy, time);
         fflush(stdout);
         return time;
     }
@@ -202,7 +205,7 @@ int calculate_pause_time() {
 
 int apply_pause_time(){
 
-    pause_time = calculate_pause_time();
+    pause_time = sleep(calculate_pause_time());
     //team lead
     while (pause_time != 0){
         // if the round is finished, then stop the ball
