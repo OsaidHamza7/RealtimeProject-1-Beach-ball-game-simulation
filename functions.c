@@ -1,13 +1,22 @@
 #include "header.h"
 
-
-void send_message_fifo(char* team_fifo_name,char* message){
+void send_message_fifo(char *team_fifo_name, char *message)
+{
 
     int fifo;
+back2:
     /* Open the public FIFO for reading and writing */
     if ((fifo = open(team_fifo_name, O_WRONLY)) == -1)
     {
+        if (errno == EINTR)
+        {
+            printf("Write error inruptted %d\n", getpid());
+            fflush(stdout);
+            goto back2;
+        }
         perror("open fifo error");
+        // printf("message of the fifo error: %s\n",message);
+
         fflush(stdout);
         exit(1);
     }
@@ -18,11 +27,9 @@ void send_message_fifo(char* team_fifo_name,char* message){
         exit(1);
     }
     close(fifo);
-    
 }
 
-
-void createFifo(char* fifo_name)
+void createFifo(char *fifo_name)
 {
     // remove fifo if it's exist
     remove(fifo_name);
@@ -34,13 +41,20 @@ void createFifo(char* fifo_name)
     }
 }
 
-
-void read_message_fifo(char* team_fifo_name,char* message){
+void read_message_fifo(char *team_fifo_name, char *message)
+{
 
     int fifo;
     // Open the public FIFO for reading
+back1:
     if ((fifo = open(team_fifo_name, O_RDONLY)) == -1)
     {
+        if (errno == EINTR)
+        {
+            printf("Read error inruptted %d \n", getpid());
+            fflush(stdout);
+            goto back1;
+        }
         perror("open fifo error");
         fflush(stdout);
         exit(1);
@@ -52,25 +66,16 @@ void read_message_fifo(char* team_fifo_name,char* message){
         exit(1);
     }
     close(fifo);
-
 }
 
-
-
-void split_string(char* argv,int arr[]){
+void split_string(char *argv, int arr[])
+{
     char *token = strtok(argv, " ");
-
-    if (token != NULL) {
-        arr[0] = atoi(token);
+    int i = 0;
+    while (token != NULL)
+    {
+        arr[i] = atoi(token);
         token = strtok(NULL, " ");
-        if (token != NULL) {
-            arr[1] = atoi(token);
-        } else {
-            printf("Expected another argument integer but got NULL\n");
-        }
-    } else {
-        printf("Expected a argument integer but got NULL\n");
+        i++;
     }
-    fflush(stdout);
-    return ;
 }

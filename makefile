@@ -5,9 +5,9 @@ ARGS= arguments.txt
 
 UILIBS = -lglut -lGLU -lGL -lm  -lrt
 LIBS = -lpthread
-NAMES = parent player
+NAMES = parent player gui
 
-all: parent player
+all: parent player gui
 
 parent: parent.c functions.c
 	$(CC) $(CFLAGS) -o parent parent.c functions.c $(LIBS)
@@ -15,8 +15,8 @@ parent: parent.c functions.c
 player: player.c functions.c
 	$(CC) $(CFLAGS) -o player player.c functions.c $(LIBS)
 
-uif: gui.c
-	$(CC) gui.c -o myprogram.elf $(UIFFLAGS)	
+gui: gui.c
+	$(CC) gui.c functions.c -o gui $(UILIBS)	
 
 run: parent
 	./parent $(ARGS) 
