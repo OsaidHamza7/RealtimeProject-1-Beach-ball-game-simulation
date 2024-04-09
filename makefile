@@ -12,8 +12,8 @@ all: parent player gui
 parent: parent.c functions.c
 	$(CC) $(CFLAGS) -o parent parent.c functions.c $(LIBS)
 
-player: player.c functions.c
-	$(CC) $(CFLAGS) -o player player.c functions.c $(LIBS)
+player: player.c functions.c player_utilities.c
+	$(CC) $(CFLAGS) -o player player.c functions.c player_utilities.c $(LIBS)
 
 gui: gui.c
 	$(CC) gui.c functions.c -o gui $(UILIBS)	

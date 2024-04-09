@@ -33,14 +33,15 @@
 #define GUIFIFO "/tmp/PUBLICFIFO"
 
 // default values, if the file that opend is empty or somthing get error
-static int NUMBER_OF_LOST_ROUNDS = 5;
-static int SIMULATION_THRISHOLD = 500;
-static int ROUND_TIME = 15;
-static int RANGE_ENERGY[2] = {1, 10};
+extern int NUMBER_OF_LOST_ROUNDS;
+extern int SIMULATION_THRISHOLD;
+extern int ROUND_TIME;
+extern int RANGE_ENERGY[2];
 
 void send_message_fifo(char *team_fifo_name, char *message);
 void createFifo(char *fifo_name);
 void read_message_fifo(char *team_fifo_name, char *message);
 void split_string(char *argv, int arr[]);
+void readArgumentsFromFile(char *filename);
 
 #endif

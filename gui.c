@@ -102,8 +102,8 @@ void drawPlayer(float x, float y, float r, float g, float b, int number)
     for (int i = 0; i <= 360; i++)
     {
         float angle = i * M_PI / 180;
-        float dx = x + 0.025 * cos(angle); // Adjust the radius as needed
-        float dy = y + 0.05 * sin(angle);
+        float dx = x + 0.030 * cos(angle);
+        float dy = y + 0.075 * sin(angle);
         glVertex2f(dx, dy);
     }
     glEnd();
@@ -294,12 +294,6 @@ void display()
     drawPalestinianFlag(0.15, 0.75, 0.15, 0.15);
     drawSouthAfricanFlag(-0.3, 0.75, 0.15, 0.15);
 
-    // Draw left half circle
-    // drawHalfCircle(-0.65, 0.0, 180, M_PI / 2, -M_PI / 2);
-
-    // Draw right half circle
-    // drawHalfCircle(0.65, 0.0, 180, -M_PI / 2, M_PI / 2);
-
     for (int team = 0; team < 2; team++)
     {
         for (int player = 0; player < 6; player++)
@@ -321,9 +315,36 @@ void display()
     read_message_fifo(GUIFIFO, message);
     printf("====================%s\n", message);
 
-    if (strcmp(message, "0") == 0)
+    if (strcmp(message, "t") == 0)
     {
-
+        drawText("Game has started", -0.19, 0.65, 0.0, 0.0, 0.0);
+        glFlush();
+    }
+    else if (strcmp(message, "e") == 0)
+    {
+        drawText("Game has ended", -0.19, 0.65, 0.0, 0.0, 0.0);
+        glFlush();
+    }
+    else if (strcmp(message, "w") == 0)
+    {
+        if (strcmp(team1result, team2result) > 0)
+        {
+            drawText("Team A won ^_^", -0.19, 0.65, 0.0, 0.0, 0.0);
+        }
+        else if (strcmp(team1result, team2result) < 0)
+        {
+            drawText("Team B won ^_^", -0.19, 0.65, 0.0, 0.0, 0.0);
+        }
+        else
+        {
+            drawText("It's a tie +_+", -0.19, 0.65, 0.0, 0.0, 0.0);
+        }
+        glFlush();
+    }
+    else if (strcmp(message, "0") == 0)
+    {
+        drawText("New Round will start in 2 seconds", -0.30, 0.45, 0.0, 0.0, 0.0);
+        glFlush();
         for (int i = 0; i < 20; i++)
         {
             ballPositions[i][0] = 0.0;
@@ -342,6 +363,8 @@ void display()
     }
     else if (strcmp(message, "1") == 0)
     {
+        drawText("Parent Throw New Ball To Team1", 0.32, 0.80, 0.0, 0.0, 0.0);
+        glFlush();
         ballPositions[number_of_balls][0] = 0.36;
         ballPositions[number_of_balls][1] = 0.0;
         number_of_balls++;
@@ -352,6 +375,8 @@ void display()
     }
     else if (strcmp(message, "2") == 0)
     {
+        drawText("Parent Throw New Ball To Team2", -0.93, 0.80, 0.0, 0.0, 0.0);
+        glFlush();
         ballPositions[number_of_balls][0] = -0.36;
         ballPositions[number_of_balls][1] = 0.0;
         number_of_balls++;
@@ -419,8 +444,8 @@ int main(int argc, char **argv)
     // glutInitWindowPosition(0, 0);
     // glutInitWindowSize(glutGet(GLUT_SCREEN_WIDTH), glutGet(GLUT_SCREEN_HEIGHT));
 
-    glutInitWindowSize(1100, 500);      // Set window size
-    glutCreateWindow("Football Field"); // Create window with title
+    glutInitWindowSize(1100, 500);       // Set window size
+    glutCreateWindow("Beach Ball Game"); // Create window with title
 
     glClearColor(1.0, 1.0, 1.0, 1.0); // Set clear color to white
 

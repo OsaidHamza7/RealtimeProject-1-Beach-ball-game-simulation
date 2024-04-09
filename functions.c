@@ -1,5 +1,10 @@
 #include "header.h"
 
+int NUMBER_OF_LOST_ROUNDS = 5;
+int SIMULATION_THRISHOLD = 500;
+int ROUND_TIME = 15;
+int RANGE_ENERGY[2] = {1, 10};
+
 void send_message_fifo(char *team_fifo_name, char *message)
 {
 
@@ -15,7 +20,6 @@ back2:
             goto back2;
         }
         perror("open fifo error");
-        // printf("message of the fifo error: %s\n",message);
 
         fflush(stdout);
         exit(1);
@@ -78,4 +82,48 @@ void split_string(char *argv, int arr[])
         token = strtok(NULL, " ");
         i++;
     }
+}
+
+void readArgumentsFromFile(char *filename)
+{
+    char line[200];
+    char label[50];
+
+    FILE *file;
+    file = fopen(filename, "r");
+
+    if (file == NULL)
+    {
+        perror("The file not exist\n");
+        exit(-2);
+    }
+    char separator[] = " ";
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        char *str = strtok(line, separator);
+        strncpy(label, str, sizeof(label));
+        str = strtok(NULL, separator);
+
+        if (strcmp(label, "NUMBER_OF_LOST_ROUNDS") == 0)
+        {
+            NUMBER_OF_LOST_ROUNDS = atoi(str);
+        }
+
+        else if (strcmp(label, "SIMULATION_THRISHOLD") == 0)
+        {
+            SIMULATION_THRISHOLD = atoi(str);
+        }
+        else if (strcmp(label, "ROUND_TIME") == 0)
+        {
+            ROUND_TIME = atoi(str);
+        }
+        else if (strcmp(label, "RANGE_ENERGY") == 0)
+        {
+            RANGE_ENERGY[0] = atoi(str);
+            str = strtok(NULL, separator);
+            RANGE_ENERGY[1] = atoi(str);
+        }
+    }
+    fclose(file);
 }

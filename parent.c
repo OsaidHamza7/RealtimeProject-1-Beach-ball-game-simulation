@@ -1,17 +1,25 @@
 
 #include "header.h"
+/*
+  Osaid Hamza - Team Leader
+  Razan Abdelrahman
+  Maisam Alaa
+  Ansam Rihan
+
+*/
 
 //***********************************************************************************
 void checkArguments(int argc, char **argv, char *file_name);
-void readArgumentsFromFile(char *filename);
 void createTeams();
 void sendPidesToTeamlead(int first_player_pid, int other_team_lead_pid);
 void init_signals_handlers();
-void signal_handler(int sig);
+void signal_handler_throw_newball(int sig);
 void startGame();
 void startRound();
 void calculateRoundScores();
 void killAllPlayers();
+void create_fifos_players();
+void signal_handler_SIGALRM(int sig);
 //***********************************************************************************
 int num_player;
 int i, status, n;
@@ -28,6 +36,7 @@ int team1_round_balls = 0, team2_round_balls = 0;
 int gui_pid;
 int current_ball_number = 0;
 char ball_number[5];
+int is_alarmed = 0;
 int main(int argc, char **argv)
 {
   char *file_name = (char *)malloc(50 * sizeof(char));
@@ -41,9 +50,6 @@ int main(int argc, char **argv)
   // read the arguments from the file
   readArgumentsFromFile(file_name);
 
-  // create the GUI fifo
-  createFifo(GUIFIFO);
-
   gui_pid = fork();
   if (gui_pid == 0)
   {
@@ -52,24 +58,17 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-  // send message to the gui to start the game
-  send_message_fifo(GUIFIFO, "0");
+  // create a fifos for the teams and for GUI
+  createFifo(GUIFIFO);
+  createFifo(TEAM1FIFO);
+  createFifo(TEAM2FIFO);
+  create_fifos_players();
+  printf("\n\nFifos was created successfully\n\n");
 
   // create the teams
   createTeams();
 
-  // create a two fifos for the teams,that used to send the number of balls that the team have from team lead to the parent
-  createFifo(TEAM1FIFO);
-  createFifo(TEAM2FIFO);
-  for (i = 1; i < NUMBER_OF_PLAYERS_In_TEAM; i++)
-  {
-    sprintf(player_fifo_name, "/tmp/TEAM1FIFO%d", i);
-    sprintf(player_fifo_name2, "/tmp/TEAM2FIFO%d", i);
-
-    createFifo(player_fifo_name);
-    createFifo(player_fifo_name2);
-  }
-  printf("\n\nThe fifos for the teams was created successfully\n\n");
+  send_message_fifo(GUIFIFO, "t"); // send message to the gui to start the game
 
   // Send Pids of ('first player' and 'other team lead') to each team lead ,after creating the teams
   sendPidesToTeamlead(team1[0], team2[5]); // send pid of player1 in team1 and pid of team2 leader to the team1 lead
@@ -81,81 +80,31 @@ int main(int argc, char **argv)
   init_signals_handlers();
 
   // Start the game
+  send_message_fifo(GUIFIFO, "0");
+  alarm(SIMULATION_THRISHOLD);
   startGame();
-
-  sleep(1);
 
   // kill all players
   killAllPlayers();
-  printf("\n\n**Good Bye**\n\n");
-  remove(GUIFIFO);
-  remove(TEAM1FIFO);
-  remove(TEAM2FIFO);
+  send_message_fifo(GUIFIFO, "e"); // send message to the gui to end the game
+  sleep(1);
+  send_message_fifo(GUIFIFO, "w"); // send message to the gui to display the winner game
+  printf("\n\n**The Game Is Finished**\n**Good Bye**\n\n");
   return 0;
 }
 
 void checkArguments(int argc, char **argv, char *file_name)
 {
-  if (argc != 2)
-  { // check if the user passed the correct arguments
-    // Use the default file names
-    printf("Usage: Invalid arguments.\n");
+  if (argc != 2) // check if the user passed the correct arguments
+  {
+    printf("Usage: Invalid arguments.\n"); // Use the default file names
     printf("Using default file names: arguments.txt\n");
     strcpy(file_name, FILE_NAME);
   }
   else
   {
-    // Use the file names provided by the user
-    strcpy(file_name, argv[1]);
+    strcpy(file_name, argv[1]); // Use the file names provided by the user
   }
-}
-
-void readArgumentsFromFile(char *filename)
-{
-  char line[200];
-  char label[50];
-
-  FILE *file;
-  file = fopen(filename, "r");
-
-  if (file == NULL)
-  {
-    perror("The file not exist\n");
-    exit(-2);
-  }
-  char separator[] = " ";
-
-  while (fgets(line, sizeof(line), file) != NULL)
-  {
-    char *str = strtok(line, separator);
-    strncpy(label, str, sizeof(label));
-    str = strtok(NULL, separator);
-
-    if (strcmp(label, "NUMBER_OF_LOST_ROUNDS") == 0)
-    {
-      NUMBER_OF_LOST_ROUNDS = atoi(str);
-    }
-
-    else if (strcmp(label, "SIMULATION_THRISHOLD") == 0)
-    {
-      SIMULATION_THRISHOLD = atoi(str);
-    }
-    else if (strcmp(label, "ROUND_TIME") == 0)
-    {
-      ROUND_TIME = atoi(str);
-    }
-    else if (strcmp(label, "RANGE_ENERGY") == 0)
-    {
-      RANGE_ENERGY[0] = atoi(str);
-      str = strtok(NULL, separator);
-      RANGE_ENERGY[1] = atoi(str);
-    }
-    /*else {
-       printf("Invalid variable name: %s\n", label);
-       fflush(stdout);
-   }*/
-  }
-  fclose(file);
 }
 
 void createTeams()
@@ -244,7 +193,6 @@ void sendPidesToTeamlead(int first_player_pid, int other_team_lead_pid)
   close(f_des[0]);
   char message1[20];
   sprintf(message1, "%d %d", first_player_pid, other_team_lead_pid); // convert the (pid of first player in team1) to string
-
   if (write(f_des[1], message1, strlen(message1)) != -1)
   {
     printf("Message sent by parent: [%s] to the team lead\n", message1);
@@ -255,29 +203,33 @@ void sendPidesToTeamlead(int first_player_pid, int other_team_lead_pid)
     perror("Write");
     exit(5);
   }
-
-  // kill(team_lead_pid, signal);
 }
 
 void startGame()
 {
-
-  while (current_round_number <= NUMBER_OF_LOST_ROUNDS)
+  while (team1_score != NUMBER_OF_LOST_ROUNDS && team2_score != NUMBER_OF_LOST_ROUNDS && is_alarmed == 0)
   {
-    send_message_fifo(GUIFIFO, "0"); // send signal to the gui to start the round
     startRound();
     calculateRoundScores();
     printf("\n\nTeam results after the Round #%d finished :\n\tteam1  %d    -    %d  team2\n\n", current_round_number, team1_score, team2_score);
     sprintf(message, "s%d%d", team1_score, team2_score);
     send_message_fifo(GUIFIFO, message);
-    sleep(2);
+    sleep(1);
     team1_round_balls = 0;
     team2_round_balls = 0;
     current_round_number++;
     current_ball_number = 0;
+    send_message_fifo(GUIFIFO, "0");
   }
-  send_message_fifo(GUIFIFO, "0"); // send signal to the gui to start the round
-  printf("\n\nThe game is finished\n\n");
+  if (is_alarmed == 1)
+  {
+    printf("\nThe *SIMULATION-THRISHOLD* of the game is reached \n");
+  }
+  else
+  {
+    printf("\nThe *NUMBER-OF-LOST-ROUNDS* of the game is reached \n");
+  }
+  fflush(stdout);
 }
 
 void startRound()
@@ -285,35 +237,27 @@ void startRound()
   printf("\n\n> Round #%d started after 3 seconds.\n\n", current_round_number);
   fflush(stdout);
   sleep(3);
-  send_message_fifo(GUIFIFO, "1"); // send signal to the gui to throw new ball to team1
 
-  kill(team1[5], SIGUSR1); // throw the ball to the team lead
+  // initially throw two balls to the team leads
+  send_message_fifo(GUIFIFO, "1"); // send signal to the gui to throw new ball to team1
+  sleep(1);
+  kill(team1[5], SIGTERM); // throw the ball to the team1 lead
 
   sprintf(ball_number, "%d", current_ball_number); // send signal to the gui to throw new ball to team2
   send_message_fifo(TEAM1FIFO, ball_number);       // send number of ball to the team lead
   current_ball_number++;
 
-  // sleep(5);
-
-  /*send_message_fifo(GUIFIFO, "1"); // send signal to the gui to throw new ball to team1
-
-  kill(team1[5], SIGTERM); // throw the ball to the team lead
-
-  sprintf(ball_number, "%d", current_ball_number); // send signal to the gui to throw new ball to team2
-  send_message_fifo(TEAM1FIFO, ball_number);       // send number of ball to the team lead
-  current_ball_number++;*/
-
-  /*kill(team2[5], SIGUSR2); // throw the ball to the team lead
+  kill(team2[5], SIGUSR2); // throw the ball to the team2 lead
 
   send_message_fifo(GUIFIFO, "2"); // send signal to the gui to throw new ball to team1
 
   sprintf(ball_number, "%d", current_ball_number); // send signal to the gui to throw new ball to team2
   send_message_fifo(TEAM2FIFO, ball_number);       // send number of ball to the team lead
-  current_ball_number++;*/
+  current_ball_number++;
 
   //  wait for current round to finish
-  pause_time_round = sleep(100);
-  while (pause_time_round != 0)
+  pause_time_round = sleep(ROUND_TIME);
+  while (pause_time_round != 0 && is_alarmed == 0)
   {
     pause_time_round = sleep(pause_time_round);
   }
@@ -341,19 +285,30 @@ void startRound()
 
 void init_signals_handlers()
 {
-  if (sigset(SIGUSR1, signal_handler) == -1)
+  if (sigset(SIGUSR1, signal_handler_throw_newball) == -1)
   { // throw the ball from parent to team lead, or from team lead to other team lead
     perror("Signal Error\n");
     exit(-1);
   }
-  if (sigset(SIGUSR2, signal_handler) == -1)
+  if (sigset(SIGUSR2, signal_handler_throw_newball) == -1)
+  { // throw the ball from parent to team lead, or from team lead to other team lead
+    perror("Signal Error\n");
+    exit(-1);
+  }
+  if (sigset(SIGALRM, signal_handler_SIGALRM) == -1)
   { // throw the ball from parent to team lead, or from team lead to other team lead
     perror("Signal Error\n");
     exit(-1);
   }
 }
-
-void signal_handler(int sig)
+// function signal_handler_SIGALRM
+void signal_handler_SIGALRM(int sig)
+{
+  is_alarmed = 1;
+  printf("The signal %d reached the parent, the game is finished.\n\n", sig);
+  fflush(stdout);
+}
+void signal_handler_throw_newball(int sig)
 {
   if (sig == SIGUSR1)
   {
@@ -364,7 +319,6 @@ void signal_handler(int sig)
 
     sprintf(ball_number, "%d", current_ball_number); // send signal to the gui to throw new ball to team2
     send_message_fifo(TEAM1FIFO, ball_number);       // send number of ball to the team lead
-
     current_ball_number++;
   }
   else if (sig == SIGUSR2)
@@ -382,7 +336,6 @@ void signal_handler(int sig)
 
 void calculateRoundScores()
 {
-
   if (team1_round_balls < team2_round_balls)
   {
     team1_score++;
@@ -399,6 +352,17 @@ void calculateRoundScores()
   {
     printf("The round is draw,so the scores is unchanged\n");
     fflush(stdout);
+  }
+}
+
+void create_fifos_players()
+{
+  for (i = 1; i < NUMBER_OF_PLAYERS_In_TEAM; i++)
+  {
+    sprintf(player_fifo_name, "/tmp/TEAM1FIFO%d", i);
+    sprintf(player_fifo_name2, "/tmp/TEAM2FIFO%d", i);
+    createFifo(player_fifo_name);
+    createFifo(player_fifo_name2);
   }
 }
 
