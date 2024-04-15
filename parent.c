@@ -241,7 +241,7 @@ void startRound()
   // initially throw two balls to the team leads
   send_message_fifo(GUIFIFO, "1"); // send signal to the gui to throw new ball to team1
   sleep(1);
-  kill(team1[5], SIGTERM); // throw the ball to the team1 lead
+  kill(team1[5], SIGUSR1); // throw the ball to the team1 lead
 
   sprintf(ball_number, "%d", current_ball_number); // send signal to the gui to throw new ball to team2
   send_message_fifo(TEAM1FIFO, ball_number);       // send number of ball to the team lead
