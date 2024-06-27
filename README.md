@@ -4,7 +4,9 @@ A multi-processing application that simulates the behavior of 2 teams of players
 
 ## Demo 
 
-[Demo.webm]  (https://github.com/OsaidHamza7/RealtimeProject-1-Beach-ball-game-simulation/assets/108472343/19476257-a87a-4659-9aae-cde9584ade5b)
+
+https://github.com/OsaidHamza7/RealtimeProject-1-Beach-ball-game-simulation/assets/108472343/ede7caa8-a0c1-42f4-9da5-a34547a89b0b
+
 
 
 ## Project Description
