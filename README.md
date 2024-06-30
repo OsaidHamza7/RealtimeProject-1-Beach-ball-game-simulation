@@ -51,6 +51,6 @@ This project simulates a beach ball game between two teams, Team A and Team B, a
 ## Authors
 * **Osaid Hamza - Team Leader**
 * Razan Abdelrahman
-* Misam Alaa
+* Maisam Alaa
 * Ansam Rihan
 
